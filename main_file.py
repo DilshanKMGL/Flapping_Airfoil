@@ -16,6 +16,7 @@ func = v_func - trailing_edge_z
 derive_func = v_derive
 v_value = ff.newton(func, derive_func, center_circle + r, tolerance, iteration)
 u_value = ff.get_u_value(v_value, center_circle, r)
-
+print(v_value)
+print(u_value)
 
 ####
