@@ -159,7 +159,7 @@ def plunging(amplitude, f, current_time):
     return [fun, vel]
 
 
-def get_trailing_edge(center_coor, a, plung_pos):
+def get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, plung_pos):
     """
     This should be revised as the plunging motion is going to be modeled
     :param center_coor: center coordinate of joukowski airfoil
@@ -167,13 +167,11 @@ def get_trailing_edge(center_coor, a, plung_pos):
     :param a: joukowski parameter
     :return: z coordinate, zeta coordinate
     """
-    z = 2 * a + 1j * sp.im(plung_pos)
-    zeta = mapzeta(z, a)
-    if plung_pos == 0:
-        return [z, zeta[0]]
-    else:
-        zeta = check_in_zeta(zeta, center_coor, a)
-        return [z, zeta]
+    v = sp.symbols('v', real=False)
+    z = trailing_edge_z + 1j * sp.im(plung_pos)
+    v_value = newton(z_fun-z, sp.diff(z_fun, v), search_point, 1e-8, 50)
+    u_value = get_u_value(v_value, center_circle, r)
+    return [z, u_value]
 
 
 def get_leading_edge(center_coor, a, plung_pos):
