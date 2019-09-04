@@ -22,9 +22,10 @@ def read_data(heading):
 
 def get_v_function(Gkn, radius, center):
     n = np.arange(1, len(Gkn) + 1)
-    v = sp.symbols('v', real=False)
-    z = v + sum(Gkn * (radius / (v - center)) ** n)
-    return z
+    v, u = sp.symbols('v, u', real=False)
+    z_fun = v + sum(Gkn * (radius / (v - center)) ** n)
+    v_fun = z_fun.subs(v, u * radius + center)
+    return z_fun, v_fun
 
 
 def newton(f, Df, x0, epsilon, max_iter):
@@ -86,6 +87,24 @@ def get_u_value(v_value, center, r):
 def get_v_value(u_value, center, r):
     v_value = u_value * r + center
     return v_value
+
+
+def new_vortex_position(z_fun, trailing_edge, search_point, angle, distance, center_circle, r):
+    """
+    :param center: center of airfoil
+    :param a: joukowski parameter
+    :param trailing_edge: current trailing edge of the airfoil
+    :param angle: vortex position angle
+    :param distance: vortex position distance relative to the chord length
+    :return: z coordinate zeta coordinate
+    """
+    v = sp.symbols('v', real=False)
+    tolerance = 1e-8
+    iteration = 50
+    z_position = trailing_edge + distance * sp.exp(-1j * sp.rad(angle)).evalf()
+    v_position = newton(z_fun - z_position, sp.diff(z_fun, v), search_point, tolerance, iteration)
+    u_position = (v_position - center_circle) / r
+    return z_position, u_position
 
 
 # -------------------------- general mapping function ------------------------------------------------------------------
@@ -175,19 +194,6 @@ def get_leading_edge(center_coor, a, plung_pos):
 
 
 # --------------------------- vortex calculation -----------------------------------------------------------------------
-def new_vortex_position(trailing_edge, center, angle, distance, a):
-    """
-    :param center: center of airfoil
-    :param a: joukowski parameter
-    :param trailing_edge: current trailing edge of the airfoil
-    :param angle: vortex position angle
-    :param distance: vortex position distance relative to the chord length
-    :return: z coordinate zeta coordinate
-    """
-    z = trailing_edge + distance * sp.exp(-1j * sp.rad(angle)).evalf()
-    zeta = mapzeta(z, a)
-    zeta = check_in_zeta(zeta, center, a)
-    return [z, zeta]
 
 
 def create_circulation(circle_center):
@@ -196,8 +202,8 @@ def create_circulation(circle_center):
     :return: circulation function
     get the circulation function around airfoil
     """
-    zeta, vor = sp.symbols('zeta, vor', real=False)
-    func = -1j * vor * sp.log(zeta - circle_center) / (2 * sp.pi)
+    u, vor = sp.symbols('u, vor', real=False)
+    func = -1j * vor * sp.log(u) / (2 * sp.pi)
     return func
 
 
@@ -207,7 +213,7 @@ def get_circulation(circle_center, strength):
     return func
 
 
-def create_vortex(circle_center, vortex_center, sum_strength, r):
+def create_vortex(vortex_center, sum_strength):
     """
 
     :param circle_center: center of the airfoil
@@ -216,14 +222,14 @@ def create_vortex(circle_center, vortex_center, sum_strength, r):
     :param r: radius of circle
     :return: function for new shed vortex and image
     """
-    zeta, vor = sp.symbols('zeta, vor', real=False)
-    func1 = -1j * (- sum_strength - vor) * sp.log(zeta - vortex_center) / (2 * sp.pi)
-    func2 = 1j * (- sum_strength - vor) * sp.log((r ** 2 / (zeta - circle_center)) - vortex_center) / (2 * sp.pi)
+    u, vor = sp.symbols('u, vor', real=False)
+    func1 = -1j * (- sum_strength - vor) * sp.log(u - vortex_center) / (2 * sp.pi)
+    func2 = 1j * (- sum_strength - vor) * sp.log((1 / u) - vortex_center) / (2 * sp.pi)
     func = func1 + func2
     return func
 
 
-def get_vortex(circle_center, vortex_center, r, strength):
+def get_vortex(vortex_center, strength):
     """
     :param circle_center: center of the airfoil
     :param vortex_center: center of the vortex
@@ -231,15 +237,15 @@ def get_vortex(circle_center, vortex_center, r, strength):
     :param strength: strength of the vortex
     :return: function of vortex with image
     """
-    zeta = sp.symbols('zeta', real=False)
-    func1 = -1j * strength * sp.log(zeta - vortex_center) / (2 * sp.pi)
-    func2 = 1j * strength * sp.log((r ** 2 / (zeta - circle_center)) - vortex_center) / (2 * sp.pi)
+    u = sp.symbols('u', real=False)
+    func1 = -1j * strength * sp.log(u - vortex_center) / (2 * sp.pi)
+    func2 = 1j * strength * sp.log((1 / u) - vortex_center) / (2 * sp.pi)
     func = func1 + func2
     return func
 
 
 # --------------------------- freestream calculation -------------------------------------------------------------------
-def get_freestream(circle_center, r, vel, aoa):
+def get_freestream(vel, aoa):
     """
     :param circle_center: center of the airfoil
     :param r: radius of the airfoil
@@ -247,9 +253,9 @@ def get_freestream(circle_center, r, vel, aoa):
     :param aoa: angle of attack
     :return:
     """
-    zeta = sp.symbols('zeta', real=False)
-    func1 = vel * zeta * (sp.cos(aoa) - 1j * sp.sin(aoa))
-    func2 = vel * (r ** 2 / (zeta - circle_center)) * (sp.cos(aoa) + 1j * sp.sin(aoa))
+    u = sp.symbols('u', real=False)
+    func1 = vel * u * (sp.cos(aoa) - 1j * sp.sin(aoa))
+    func2 = vel * (1 / u) * (sp.cos(aoa) + 1j * sp.sin(aoa))
     return func1 + func2
 
 
@@ -260,9 +266,9 @@ def calculate_circulation(func, tev_edge):
     :param tev_edge: trailing edge vortex coordinates
     :return: circulation around the airfoil
     """
-    zeta, vor = sp.symbols('zeta, vor', real=False)
-    func = sp.diff(func, zeta)
-    func = func.subs([(zeta, tev_edge)])
+    u, vor = sp.symbols('u, vor', real=False)
+    func = sp.diff(func, u)
+    func = func.subs([(u, tev_edge)])
     answer = sp.solve(func)
     return answer[0]
 
