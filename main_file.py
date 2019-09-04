@@ -27,13 +27,16 @@ le_vortex_strength = []
 vortex_z = []
 vortex_v = []
 vortex_u = []
-# derivatives
+# ------ derivatives
+v_func = ff.get_v_function(Gkn, r, center_circle)
+print(v_func)
 
+'''
 v_func, v_derive = ff.get_v_function(Gkn, r, center_circle)
 
 func = v_func - trailing_edge_z
 derive_func = v_derive
-'''
+
 tolerance = 1e-8
 iteration = 50
 v_value = ff.newton(func, derive_func, center_circle + r, tolerance, iteration)

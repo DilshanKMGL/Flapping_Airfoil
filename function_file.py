@@ -24,8 +24,7 @@ def get_v_function(Gkn, radius, center):
     n = np.arange(1, len(Gkn) + 1)
     v = sp.symbols('v', real=False)
     z = v + sum(Gkn * (radius / (v - center)) ** n)
-    z_dev = sp.diff(z, v)
-    return z, z_dev
+    return z
 
 
 def newton(f, Df, x0, epsilon, max_iter):
