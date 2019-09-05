@@ -28,7 +28,7 @@ def get_v_function(Gkn, radius, center):
     return z_fun, v_fun
 
 
-def newton(f, Df, x0, epsilon, max_iter):
+def newton_v(f, Df, x0, epsilon, max_iter):
     """Approximate solution of f(x)=0 by Newton's method.
 
     Parameters
@@ -67,10 +67,63 @@ def newton(f, Df, x0, epsilon, max_iter):
     xn = x0
     for n in range(0, max_iter):
         fxn = f.subs([(v, xn)]).evalf()  # f(xn)
+
         if abs(fxn) < epsilon:
             # print('Found solution after', n, 'iterations.')
             return xn
         Dfxn = Df.subs([(v, xn)]).evalf()  # Df(xn)
+        if Dfxn == 0:
+            # print('Zero derivative. No solution found.')
+            return None
+        xn = (xn - fxn / Dfxn).evalf()
+    print('Exceeded maximum iterations. No solution found.')
+    return None
+
+
+def newton_u(f, Df, x0, epsilon, max_iter):
+    """Approximate solution of f(x)=0 by Newton's method.
+
+    Parameters
+    ----------
+    f : function
+        Function for which we are searching for a solution f(x)=0.
+    Df : function
+        Derivative of f(x).
+    x0 : number
+        Initial guess for a solution f(x)=0.
+    epsilon : number
+        Stopping criteria is abs(f(x)) < epsilon.
+    max_iter : integer
+        Maximum number of iterations of Newton's method.
+
+    Returns
+    -------
+    xn : number
+        Implement Newton's method: compute the linear approximation
+        of f(x) at xn and find x intercept by the formula
+            x = xn - f(xn)/Df(xn)
+        Continue until abs(f(xn)) < epsilon and return xn.
+        If Df(xn) == 0, return None. If the number of iterations
+        exceeds max_iter, then return None.
+
+    Examples
+    --------
+    #>>> f = lambda x: x**2 - x - 1
+    #>>> Df = lambda x: 2*x - 1
+    #>>> newton(f,Df,1,1e-8,10)
+    Found solution after 5 iterations.
+    1.618033988749989
+    """
+
+    u = sp.symbols('u', real=False)
+    xn = x0
+    for n in range(0, max_iter):
+        fxn = f.subs([(u, xn)]).evalf()  # f(xn)
+
+        if abs(fxn) < epsilon:
+            # print('Found solution after', n, 'iterations.')
+            return xn
+        Dfxn = Df.subs([(u, xn)]).evalf()  # Df(xn)
         if Dfxn == 0:
             # print('Zero derivative. No solution found.')
             return None
@@ -102,33 +155,67 @@ def new_vortex_position(z_fun, trailing_edge, search_point, angle, distance, cen
     tolerance = 1e-8
     iteration = 50
     z_position = trailing_edge + distance * sp.exp(-1j * sp.rad(angle)).evalf()
-    v_position = newton(z_fun - z_position, sp.diff(z_fun, v), search_point, tolerance, iteration)
+
+    v_position = newton_v(z_fun - z_position, sp.diff(z_fun, v), search_point, tolerance, iteration)
     u_position = (v_position - center_circle) / r
     return z_position, u_position
 
 
-# -------------------------- general mapping function ------------------------------------------------------------------
-def mapzeta(z_coordinate, a):
-    """
+def make_file(airfoil, N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane,
+              free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+              time_step, current_time, iteration, distance, angle):
+    heading = 'result_file.txt'
+    file1 = open(heading, 'w')
 
-    complex number / list :param z_coordinate: can be a complex number or complex number list
-    float
-    :param z_coordinate: coordinate value in z plane
+    file1.write('airfoil\n' + str(airfoil) + '\n')
+    file1.write('Number of points\n' + str(N) + '\n')
+    file1.write('center_circle\n' + str(center_circle) + '\n')
+    file1.write('trailing_edge_z\n' + str(trailing_edge_z) + '\n')
+    file1.write('Gkn\n' + str(Gkn) + '\n')
+    file1.write('airfoil z coordinate\n' + str(list(z_plane)) + '\n')
+    file1.write('airfoil v coordinate\n' + str(list(v_plane)) + '\n')
+    file1.write('airfoil u coordinate\n' + str(list(u_plane)) + '\n')
+    file1.write('free_velocity\n' + str(free_velocity) + '\n')
+    file1.write('free_aoa\n' + str(free_aoa) + '\n')
+    file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
+    file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
+    file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
+    file1.write('pi_frequency\n' + str(pi_frequency) + '\n')
+    file1.write('time_step\n' + str(time_step) + '\n')
+    file1.write('current_time\n' + str(current_time) + '\n')
+    file1.write('iteration\n' + str(iteration) + '\n')
+    file1.write('distance\n' + str(distance) + '\n')
+    file1.write('angle\n' + str(angle) + '\n')
+    file1.close()
+
+
+def get_circulation(strength):
+    u = sp.symbols('u', real=False)
+    func = -1j * strength * sp.log(u) / (2 * sp.pi)
+    return func
+
+
+def get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, plung_pos):
+    """
+    This should be revised as the plunging motion is going to be modeled
+    :param r:
+    :param center_circle:
+    :param search_point:
+    :param trailing_edge_z:
+    :param z_fun:
+    :param center_coor: center coordinate of joukowski airfoil
+    :param plung_pos: current position in plunging
     :param a: joukowski parameter
-    complex number or complex number list
-    :return: complex number or complex number list
+    :return: z coordinate, zeta coordinate
     """
-    z, zeta = sp.symbols('z, zeta')
-    function = z - (zeta + pow(a, 2) / zeta)
-    if isinstance(z_coordinate, list):
-        z_coordinate = [function.subs(z, index) for index in z_coordinate]
-        answer = [sp.solve(index, zeta) for index in z_coordinate]
-    else:
-        z_coordinate = function.subs(z, z_coordinate)
-        answer = sp.solve(z_coordinate, zeta)
-    return answer
+    v = sp.symbols('v', real=False)
+    z = trailing_edge_z + 1j * sp.im(plung_pos)
+    v_value = newton_v(z_fun - z, sp.diff(z_fun, v), search_point, 1e-8, 50)
+    u_value = get_u_value(v_value, center_circle, r)
+    return [z, u_value]
 
 
+# -------------------------- general mapping function ------------------------------------------------------------------
 def check_in_zeta(z_coordinate, center_coor, a):
     """
     :param z_coordinate:
@@ -159,38 +246,6 @@ def plunging(amplitude, f, current_time):
     return [fun, vel]
 
 
-def get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, plung_pos):
-    """
-    This should be revised as the plunging motion is going to be modeled
-    :param center_coor: center coordinate of joukowski airfoil
-    :param plung_pos: current position in plunging
-    :param a: joukowski parameter
-    :return: z coordinate, zeta coordinate
-    """
-    v = sp.symbols('v', real=False)
-    z = trailing_edge_z + 1j * sp.im(plung_pos)
-    v_value = newton(z_fun-z, sp.diff(z_fun, v), search_point, 1e-8, 50)
-    u_value = get_u_value(v_value, center_circle, r)
-    return [z, u_value]
-
-
-def get_leading_edge(center_coor, a, plung_pos):
-    """
-        This should be revised as the plunging motion is going to be modeled
-        :param center_coor: center coordinate of joukowski airfoil
-        :param plung_pos: current position in plunging
-        :param a: joukowski parameter
-        :return: z coordinate, zeta coordinate
-        """
-    z = 1j * sp.im(plung_pos)
-    zeta = mapzeta(z, a)
-    if plung_pos == 0:
-        return [z, zeta[0]]
-    else:
-        zeta = check_in_zeta(zeta, center_coor, a)
-        return [z, zeta]
-
-
 # --------------------------- vortex calculation -----------------------------------------------------------------------
 
 
@@ -202,12 +257,6 @@ def create_circulation(circle_center):
     """
     u, vor = sp.symbols('u, vor', real=False)
     func = -1j * vor * sp.log(u) / (2 * sp.pi)
-    return func
-
-
-def get_circulation(circle_center, strength):
-    zeta = sp.symbols('zeta', real=False)
-    func = -1j * strength * sp.log(zeta - circle_center) / (2 * sp.pi)
     return func
 
 
@@ -272,33 +321,6 @@ def calculate_circulation(func, tev_edge):
 
 
 # ---------------------------- writing a file
-def make_file(a, center, velocity, aoa, t_step, iteration, distance, angle, pl_amp, pl_f):
-    heading = 'new file.txt'
-    file1 = open(heading, 'w')
-
-    file1.write('joukowski parameters\n')
-    file1.write('center - ' + str(center) + '\n')
-    file1.write('a      - ' + str(a) + '\n')
-
-    file1.write('Flow field\n')
-    file1.write('velocity           - ' + str(velocity) + '\n')
-    file1.write('angle of attack    - ' + str(aoa) + '\n')
-    file1.write('time step          - ' + str(t_step) + '\n')
-    file1.write('iteration          - ' + str(iteration) + '\n')
-
-    file1.write('plunging parameters\n')
-    file1.write('amplitude - ' + str(pl_amp) + '\n')
-    file1.write('frequency - ' + str(pl_f) + '\n')
-
-    file1.write('new vortex\n')
-    file1.write('distance   - ' + str(distance) + '\n')
-    file1.write('angle      - ' + str(angle) + '\n')
-
-    file1.write('circulation list\n')
-    file1.write('vortex strength list\n')
-    file1.write('vortex z coordinate list\n')
-    file1.write('vortex zeta coordinate list\n')
-    file1.close()
 
 
 def write_array(circulation, vortex_strength, vortex_z, vortex_zeta, i):
