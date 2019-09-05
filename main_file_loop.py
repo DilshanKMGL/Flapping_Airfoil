@@ -7,7 +7,7 @@ import cmath
 start = time.time()
 
 # ------ airfoil data
-airfoil = 'NACA4412'
+airfoil = 'NACA2412'
 N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = ff.read_data(airfoil)
 # ------ free stream velocity
 free_velocity = 5
@@ -20,9 +20,9 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ time step
-time_step = 0.05
+time_step = 0.01
 current_time = 0.00
-iteration = 25
+iteration = 120
 # ------ new vortex
 distance = 0.005
 angle = 0

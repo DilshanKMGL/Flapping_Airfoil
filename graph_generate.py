@@ -16,7 +16,7 @@ te_vortex_strength_line = 44
 te_vortex_z_line = 46
 
 for i in range(iteration):
-    print('Iteration :'+str(i))
+    print('Iteration :'+str(i+1))
     te_vortex_strength = line[te_vortex_strength_line][1:-2]
     te_vortex_strength = [float(index) for index in te_vortex_strength.split(',')]
 
@@ -49,7 +49,7 @@ for i in range(iteration):
     plt.scatter(te_vortex_real_part_positive, te_vortex_imag_part_positive, s=2, color='g')
     plt.scatter(te_vortex_real_part_negative, te_vortex_imag_part_negative, s=2, color='r')
 
-    temp_heading = heading + ' ' + str(i+1)
+    temp_heading = heading + ' ' + str(i+1) + '.png'
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
     plt.savefig(temp_heading)
