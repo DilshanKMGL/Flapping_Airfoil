@@ -95,13 +95,3 @@ te_vortex_z = te_vortex_z.tolist()
 te_vortex_u = [ff.newton_u(v_fun - te_vortex_z[index], sp.diff(v_fun, u), past_te_vortex_u[index], 1e-8, 50)
                for index in range(len(te_vortex_z))]
 print(time.time() - start)
-
-'''
-v_func, v_derive = ff.get_v_function(Gkn, r, center_circle)
-func = v_func - trailing_edge_z
-derive_func = v_derive
-tolerance = 1e-8
-iteration = 50
-v_value = ff.newton(func, derive_func, center_circle + r, 1e-8, 50)
-u_value = ff.get_u_value(v_value, center_circle, r)
-'''

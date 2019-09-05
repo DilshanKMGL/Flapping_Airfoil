@@ -10,7 +10,7 @@ start = time.time()
 airfoil = 'NACA4412'
 N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = ff.read_data(airfoil)
 # ------ free stream velocity
-free_velocity = 5.0
+free_velocity = 5
 free_aoa = 0.0
 free_aoa = sp.rad(free_aoa).evalf()
 # ------ plunging parameters
@@ -20,9 +20,9 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ time step
-time_step = 0.02
+time_step = 0.05
 current_time = 0.00
-iteration = 10
+iteration = 50
 # ------ new vortex
 distance = 0.005
 angle = 0
@@ -100,6 +100,8 @@ for iterate in range(iteration):
 
     if iterate == iteration -1:
         ff.final_position(te_vortex_z, te_vortex_u)
+
+print(time.time() - start)
 
 '''
 v_func, v_derive = ff.get_v_function(Gkn, r, center_circle)
