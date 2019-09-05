@@ -49,7 +49,7 @@ for i in range(iteration):
     plt.scatter(te_vortex_real_part_positive, te_vortex_imag_part_positive, s=2, color='g')
     plt.scatter(te_vortex_real_part_negative, te_vortex_imag_part_negative, s=2, color='r')
 
-    temp_heading = heading + ' ' + str(i)
+    temp_heading = heading + ' ' + str(i+1)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
     plt.savefig(temp_heading)

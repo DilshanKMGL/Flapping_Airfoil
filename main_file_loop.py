@@ -22,7 +22,7 @@ pi_frequency = 0
 # ------ time step
 time_step = 0.05
 current_time = 0.00
-iteration = 50
+iteration = 25
 # ------ new vortex
 distance = 0.005
 angle = 0
