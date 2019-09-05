@@ -144,6 +144,8 @@ def get_v_value(u_value, center, r):
 
 def new_vortex_position(z_fun, trailing_edge, search_point, angle, distance, center_circle, r):
     """
+    :param search_point:
+    :param z_fun:
     :param center: center of airfoil
     :param a: joukowski parameter
     :param trailing_edge: current trailing edge of the airfoil
@@ -186,6 +188,12 @@ def make_file(airfoil, N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_pla
     file1.write('iteration\n' + str(iteration) + '\n')
     file1.write('distance\n' + str(distance) + '\n')
     file1.write('angle\n' + str(angle) + '\n')
+
+    file1.write('circulation\n')
+    file1.write('te_vortex_strength\n')
+    file1.write('te_vortex_u\n')
+    file1.write('te_vortex_z\n')
+
     file1.close()
 
 
@@ -213,6 +221,25 @@ def get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, pl
     v_value = newton_v(z_fun - z, sp.diff(z_fun, v), search_point, 1e-8, 50)
     u_value = get_u_value(v_value, center_circle, r)
     return [z, u_value]
+
+
+def write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, i):
+    heading = 'result_file.txt'
+    file1 = open(heading, "a+")
+    file1.write('Iteration ' + str(i + 1) + '\n')
+    file1.write(str(circulation) + '\n')
+    file1.write(str(te_vortex_strength) + '\n')
+    file1.write(str(te_vortex_u) + '\n')
+    file1.write(str(te_vortex_z) + '\n')
+    file1.close()
+
+
+def final_position(te_vortex_z, te_vortex_u):
+    heading = 'result_file.txt'
+    file1 = open(heading, "a+")
+    file1.write('te_vortex_z\n' + str(te_vortex_z) + '\n')
+    file1.write('vortex_zeta\n' + str(te_vortex_u) + '\n')
+    file1.close()
 
 
 # -------------------------- general mapping function ------------------------------------------------------------------
@@ -323,30 +350,7 @@ def calculate_circulation(func, tev_edge):
 # ---------------------------- writing a file
 
 
-def write_array(circulation, vortex_strength, vortex_z, vortex_zeta, i):
-    heading = 'new file.txt'
-    file1 = open(heading, "a+")
-    file1.write('Iteration ' + str(i + 1) + '\n')
-    file1.write(str(circulation))
-    file1.write('\n')
-    file1.write(str(vortex_strength))
-    file1.write('\n')
-    file1.write(str(vortex_z))
-    file1.write('\n')
-    file1.write(str(vortex_zeta))
-    file1.write('\n')
-    file1.close()
 
-
-def final_position(vortex_z, vortex_zeta):
-    heading = 'new file.txt'
-    file1 = open(heading, "a+")
-    file1.write('vortex_z\n')
-    file1.write(str(vortex_z))
-    file1.write('\n')
-    file1.write('vortex_zeta\n')
-    file1.write(str(vortex_zeta))
-    file1.close()
 
 
 def make_velocity_file():

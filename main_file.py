@@ -69,6 +69,9 @@ new_circulation = ff.calculate_circulation(vortex_function, te_value[1])
 circulation.append(sp.re(new_circulation))
 te_vortex_strength.append(sp.re(-te_vortex_sum - new_circulation))
 
+# ------ write in the file
+ff.write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, 0)
+
 current_time += time_step
 current_time = round(current_time, 2)
 
@@ -91,7 +94,7 @@ te_vortex_z = te_vortex_z + velocity_function * time_step
 te_vortex_z = te_vortex_z.tolist()
 te_vortex_u = [ff.newton_u(v_fun - te_vortex_z[index], sp.diff(v_fun, u), past_te_vortex_u[index], 1e-8, 50)
                for index in range(len(te_vortex_z))]
-
+print(time.time() - start)
 
 '''
 v_func, v_derive = ff.get_v_function(Gkn, r, center_circle)
