@@ -36,8 +36,8 @@ for i in range(iteration):
             te_vortex_real_part_negative.append(te_vortex_z[index].real)
             te_vortex_imag_part_negative.append(te_vortex_z[index].imag)
 
-    te_vortex_strength_line += 5
-    te_vortex_z_line += 5
+    te_vortex_strength_line += 6
+    te_vortex_z_line += 6
 
     plt.axis('off')
     #plt.xlim(-1, 10)

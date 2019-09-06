@@ -5,7 +5,7 @@ import time
 import cmath
 
 start = time.time()
-
+iterate_time = start
 # ------ airfoil data
 airfoil = 'NACA2412'
 N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = ff.read_data(airfoil)
@@ -22,7 +22,7 @@ pi_frequency = 0
 # ------ time step
 time_step = 0.01
 current_time = 0.00
-iteration = 120
+iteration = 5
 # ------ new vortex
 distance = 0.005
 angle = 0
@@ -31,6 +31,7 @@ circulation = []
 te_vortex_strength = []
 te_vortex_z = []
 te_vortex_u = []
+iterate_time_step = []
 
 # ------ derivatives
 v, u = sp.symbols('v, u', real=False)
@@ -57,23 +58,29 @@ for iterate in range(iteration):
     te_value = ff.get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, fun_1[0])
     new_vortex_z, new_vortex_u = ff.new_vortex_position(z_fun, trailing_edge_z, search_point, angle, distance,
                                                         center_circle, r)
-    te_vortex_u.append(new_vortex_u)
-    te_vortex_z.append(new_vortex_z)
+
+    te_vortex_u.append((new_vortex_u))
+    te_vortex_z.append((new_vortex_z))
 
     # create function to make complex potential function
     vortex_function = ff.create_circulation(center_circle).subs(v, (u * r) / center_circle).evalf()
     te_vortex_sum = sum(te_vortex_strength)
     vortex_function += ff.create_vortex(te_vortex_u[-1], te_vortex_sum)
     vortex_function += ff.get_freestream(velocity, aoa)
+
     temp_func = [ff.get_vortex(te_vortex_u[vortex], te_vortex_strength[vortex])
                  for vortex in range(len(te_vortex_strength))]
+
     vortex_function += sum(temp_func)
     new_circulation = ff.calculate_circulation(vortex_function, te_value[1])
-    circulation.append(sp.re(new_circulation))
-    te_vortex_strength.append(sp.re(-te_vortex_sum - new_circulation))
+    circulation.append((sp.re(new_circulation)))
+    te_vortex_strength.append((sp.re(-te_vortex_sum - new_circulation)))
 
     # ------ write in the file
-    ff.write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, iterate)
+    iterate_time_step.append(time.time() - iterate_time)
+
+    iterate_time = time.time()
+    ff.write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, iterate_time_step, iterate)
 
     current_time += time_step
     current_time = round(current_time, 2)
@@ -87,8 +94,10 @@ for iterate in range(iteration):
     velocity_function = [(vortex_function -
                           sp.diff(ff.get_vortex(te_vortex_u[index], te_vortex_strength[index]), u)).evalf()
                          for index in range(len(te_vortex_strength))]
-    velocity_function = np.multiply(velocity_function, first_derivative) - (np.multiply(te_vortex_strength, 1j) / sp.pi *
-                                                                            second_derivative / first_derivative)
+
+    velocity_function = np.multiply(velocity_function, first_derivative) - (
+            np.multiply(te_vortex_strength, 1j) / sp.pi *
+            second_derivative / first_derivative)
     velocity_function = [velocity_function[index].subs(u, te_vortex_u[index]).evalf()
                          for index in range(len(velocity_function))]
     velocity_function = np.conj(velocity_function)
@@ -98,17 +107,9 @@ for iterate in range(iteration):
     te_vortex_u = [ff.newton_u(v_fun - te_vortex_z[index], sp.diff(v_fun, u), past_te_vortex_u[index], 1e-8, 50)
                    for index in range(len(te_vortex_z))]
 
-    if iterate == iteration -1:
+    if iterate == iteration - 1:
         ff.final_position(te_vortex_z, te_vortex_u)
 
-print(time.time() - start)
+    print('Iteratation ' + str(iterate + 1) + ' complete. ', round(iterate_time_step[-1], 2), 's')
 
-'''
-v_func, v_derive = ff.get_v_function(Gkn, r, center_circle)
-func = v_func - trailing_edge_z
-derive_func = v_derive
-tolerance = 1e-8
-iteration = 50
-v_value = ff.newton(func, derive_func, center_circle + r, 1e-8, 50)
-u_value = ff.get_u_value(v_value, center_circle, r)
-'''
+print('total time ', round(time.time() - start), 2)

@@ -223,7 +223,7 @@ def get_trailing_edge(z_fun, trailing_edge_z, search_point, center_circle, r, pl
     return [z, u_value]
 
 
-def write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, i):
+def write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, iterate_time_step, i):
     heading = 'result_file.txt'
     file1 = open(heading, "a+")
     file1.write('Iteration ' + str(i + 1) + '\n')
@@ -231,6 +231,8 @@ def write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, i):
     file1.write(str(te_vortex_strength) + '\n')
     file1.write(str(te_vortex_u) + '\n')
     file1.write(str(te_vortex_z) + '\n')
+    file1.write(str(te_vortex_z) + '\n')
+    file1.write(str(iterate_time_step) + '\n')
     file1.close()
 
 
