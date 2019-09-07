@@ -193,6 +193,7 @@ def make_file(airfoil, N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_pla
     file1.write('te_vortex_strength\n')
     file1.write('te_vortex_u\n')
     file1.write('te_vortex_z\n')
+    file1.write('iteration step time\n')
 
     file1.close()
 
@@ -230,7 +231,6 @@ def write_array(circulation, te_vortex_strength, te_vortex_u, te_vortex_z, itera
     file1.write(str(circulation) + '\n')
     file1.write(str(te_vortex_strength) + '\n')
     file1.write(str(te_vortex_u) + '\n')
-    file1.write(str(te_vortex_z) + '\n')
     file1.write(str(te_vortex_z) + '\n')
     file1.write(str(iterate_time_step) + '\n')
     file1.close()

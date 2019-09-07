@@ -22,7 +22,7 @@ pi_frequency = 0
 # ------ time step
 time_step = 0.01
 current_time = 0.00
-iteration = 5
+iteration = 25
 # ------ new vortex
 distance = 0.005
 angle = 0
@@ -59,8 +59,8 @@ for iterate in range(iteration):
     new_vortex_z, new_vortex_u = ff.new_vortex_position(z_fun, trailing_edge_z, search_point, angle, distance,
                                                         center_circle, r)
 
-    te_vortex_u.append((new_vortex_u))
-    te_vortex_z.append((new_vortex_z))
+    te_vortex_u.append(new_vortex_u)
+    te_vortex_z.append(new_vortex_z)
 
     # create function to make complex potential function
     vortex_function = ff.create_circulation(center_circle).subs(v, (u * r) / center_circle).evalf()
@@ -110,6 +110,6 @@ for iterate in range(iteration):
     if iterate == iteration - 1:
         ff.final_position(te_vortex_z, te_vortex_u)
 
-    print('Iteratation ' + str(iterate + 1) + ' complete. ', round(iterate_time_step[-1], 2), 's')
+    print('Iteratation ' + str(iterate + 1) + ' complete after ', round(iterate_time_step[-1], 2), 's')
 
-print('total time ', round(time.time() - start), 2)
+print('total time ', round(time.time() - start, 2))
