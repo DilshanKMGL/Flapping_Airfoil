@@ -22,7 +22,7 @@ pi_frequency = 0
 # ------ time step
 time_step = 0.01
 current_time = 0.00
-iteration = 25
+iteration = 10
 # ------ new vortex
 distance = 0.005
 angle = 0
@@ -91,22 +91,30 @@ for iterate in range(iteration):
                       ff.get_freestream(velocity, aoa)
     vortex_function = sp.diff(vortex_function.evalf(), u)
 
+    a = time.time() - start
     velocity_function = [(vortex_function -
                           sp.diff(ff.get_vortex(te_vortex_u[index], te_vortex_strength[index]), u)).evalf()
                          for index in range(len(te_vortex_strength))]
+    b = time.time() - start
+    print(b - a)
 
     velocity_function = np.multiply(velocity_function, first_derivative) - (
             np.multiply(te_vortex_strength, 1j) / sp.pi *
             second_derivative / first_derivative)
+    a = time.time() - start
     velocity_function = [velocity_function[index].subs(u, te_vortex_u[index]).evalf()
                          for index in range(len(velocity_function))]
+    b = time.time() - start
+    print(b-a)
     velocity_function = np.conj(velocity_function)
     past_te_vortex_u = te_vortex_u.copy()
     te_vortex_z = te_vortex_z + velocity_function * time_step
     te_vortex_z = te_vortex_z.tolist()
+    a = time.time() - start
     te_vortex_u = [ff.newton_u(v_fun - te_vortex_z[index], sp.diff(v_fun, u), past_te_vortex_u[index], 1e-8, 50)
                    for index in range(len(te_vortex_z))]
-
+    b = time.time() - start
+    print(b - a)
     if iterate == iteration - 1:
         ff.final_position(te_vortex_z, te_vortex_u)
 
