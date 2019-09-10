@@ -92,7 +92,6 @@ for iterate in range(iteration):
                       ff.get_freestream(velocity, aoa)
     vortex_function = sp.diff(vortex_function.evalf(), u)
 
-
     velocity_function = [(vortex_function -
                           sp.diff(ff.get_vortex(te_vortex_u[index], te_vortex_strength[index]), u)).evalf()
                          for index in range(len(te_vortex_strength))]
