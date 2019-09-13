@@ -138,24 +138,22 @@ for iterate in range(iteration):
     vs = vs.reshape(len(te_vortex_strength) - 1, len(te_vortex_strength))
     vs = np.transpose(vs)
 
-    p = p1 + p2
+    p = p1+p2
     if len(u) > 1:
         p3 = - 1j * vs * ((1 / (u - vc)) + (1 / (u * (1 - u * vc)))) / (2 * np.pi)
+        p3 = sum(np.transpose(p3))
         p += p3
-    p = p * np.ones((len(te_vortex_u), len(Gkn)))
+
+    p = np.array(list(p) * len(Gkn))
+    p = p.reshape(len(Gkn), len(te_vortex_u))
+    p = np.transpose(p)
 
     te_vortex = np.array(list(te_vortex_u) * len(Gkn))
     te_vortex = te_vortex.reshape(len(Gkn), len(te_vortex_u))
     te_vortex = np.transpose(te_vortex)
 
-    p = p * np.ones((len(te_vortex_u), len(Gkn)))
     vel_conj = p * dudz - 1j * te_vortex * d2udz2 / dudz / (4 * np.pi)
     te_vortex_vel = np.conj(vel_conj)
     te_vortex_vel = sum(np.transpose(te_vortex_vel))
-    print(te_vortex_vel)
-    print(np.shape(te_vortex_vel))
-    print(circulation)
-    print(velocity)
-    print(aoa)
-
+    
 print('total time ', time.time() - start)
