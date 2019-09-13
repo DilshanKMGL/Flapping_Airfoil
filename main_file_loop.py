@@ -1,4 +1,3 @@
-import function_file as ff
 import numpy as np
 import time
 
@@ -100,9 +99,9 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.005
+time_step = 0.05
 current_time = 0.00
-iteration = 10
+iteration = 100
 
 # ------ derivatives
 
@@ -112,9 +111,7 @@ make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_ampli
 
 # ------ iteration code
 for iterate in range(iteration):
-    a = np.array(range(len(Gkn))) + 1
-
-    # print('Iteration - ' + str(iterate + 1))
+    print('Iteration - ' + str(iterate + 1))
 
     # ------ calculate trailing edge position
     search_point = center_circle + radius
