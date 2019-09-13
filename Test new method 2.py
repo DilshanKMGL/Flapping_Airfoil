@@ -153,7 +153,12 @@ for iterate in range(iteration):
     te_vortex = np.transpose(te_vortex)
 
     vel_conj = p * dudz - 1j * te_vortex * d2udz2 / dudz / (4 * np.pi)
+    vel_conj = sum(np.transpose(vel_conj))
     te_vortex_vel = np.conj(vel_conj)
-    te_vortex_vel = sum(np.transpose(te_vortex_vel))
-    
+    print(te_vortex_z)
+    te_vortex_z = te_vortex_z + te_vortex_vel * time_step
+    print(te_vortex_z)
+
+
+
 print('total time ', time.time() - start)
