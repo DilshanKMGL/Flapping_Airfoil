@@ -89,7 +89,7 @@ pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
 distance = 0.005
-angle = 0
+angle = -5
 angle = np.deg2rad(angle)
 # ------ data store
 circulation_list = np.array([])
@@ -101,7 +101,7 @@ iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.05
 current_time = 0.00
-iteration = 100
+iteration = 200
 
 # ------ derivatives
 
