@@ -8,7 +8,6 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
     for n in range(0, max_iter):
         power = np.arange(1, len(Gkn) + 1)
         fxn = xn + sum(Gkn * (radius / (xn - center_circle)) ** power) - equal_val
-
         if abs(fxn) < epsilon:
             # print('Found solution after', n, 'iterations.')
             return xn
@@ -48,7 +47,7 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.01
+time_step = 0.005
 current_time = 0.00
 iteration = 1
 
@@ -155,10 +154,12 @@ for iterate in range(iteration):
     vel_conj = p * dudz - 1j * te_vortex * d2udz2 / dudz / (4 * np.pi)
     vel_conj = sum(np.transpose(vel_conj))
     te_vortex_vel = np.conj(vel_conj)
-    print(te_vortex_z)
     te_vortex_z = te_vortex_z + te_vortex_vel * time_step
     print(te_vortex_z)
-
-
+    print(te_vortex_v)
+    te_vortex_v = [newton(te_vortex_v[index], 1e-8, 50, Gkn, radius, center_circle, te_vortex_z[index])
+                   for index in range(len(te_vortex_z))]
+    te_vortex_v = np.array(te_vortex_v)
+    print(te_vortex_v)
 
 print('total time ', time.time() - start)
