@@ -88,8 +88,8 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
-distance = 0.005
-angle = -5
+distance = 0.01
+angle = 0
 angle = np.deg2rad(angle)
 # ------ data store
 circulation_list = np.array([])
@@ -99,7 +99,8 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.05
+time_step = 0.0001
+" if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
 iteration = 200
 
