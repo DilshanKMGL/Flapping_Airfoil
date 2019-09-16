@@ -80,8 +80,8 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
-distance = 0.005
-end_distance = 0.011
+distance = 0.001
+end_distance = 0.05
 angle = -5.0
 end_angle = 5.1
 # ------ time step
@@ -89,7 +89,7 @@ time_step = 0.05
 # ------ iteration code
 for dist in np.arange(distance, end_distance, 0.005):
     # ---- file name
-    heading = 'trailing edge position optimization - distance from trailing edge' + str(dist)
+    heading = 'trailing edge position optimization - distance from trailing edge ' + str(dist)
     make_file(heading, airfoil, time_step)
     for t_aoa in np.arange(angle, end_angle, 0.1):
         print('distance ' + str(dist) + ' & aoa ' + str(round(t_aoa, 2)))
