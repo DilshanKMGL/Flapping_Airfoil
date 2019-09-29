@@ -78,8 +78,11 @@ iterate_time = start
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-free_velocity = 5
-free_aoa = 10.0
+re_num = 1e5
+density = 1.225
+viscosity = 1.789e-5
+free_velocity = re_num*viscosity/density
+free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
 pl_amplitude = 0
@@ -88,7 +91,7 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
-distance = 0.01
+distance = 0.001
 angle = 0
 angle = np.deg2rad(angle)
 # ------ data store
@@ -99,10 +102,10 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.0001
+time_step = 0.01
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 10
+iteration = 1000
 
 
 
@@ -123,6 +126,8 @@ for iterate in range(iteration):
     # --- calculate velocity
     velocity = free_velocity
     aoa = free_aoa
+    # print(velocity)
+    # print(aoa)
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)

@@ -86,8 +86,8 @@ free_velocity = re_num*viscosity/density
 free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
-pl_amplitude = 0.5
-pl_frequency = 1
+pl_amplitude = 0
+pl_frequency = 0
 # ------ pitching parameters
 pi_amplitude = 0
 pi_frequency = 0
@@ -103,10 +103,10 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.001
+time_step = 0.01
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 100
+iteration = 10
 
 # trailing edge position in v plane
 trailing_edge_v_previous = center_circle + radius
@@ -131,7 +131,9 @@ for iterate in range(iteration):
     # --- calculate velocity
     vel_val = cmath.polar(free_velocity * pow(np.e, 1j * free_aoa) + plunging_vel)
     velocity = vel_val[0]
+    print(velocity)
     aoa = vel_val[1]
+    print(aoa)
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
