@@ -1,4 +1,5 @@
 import numpy as np
+import cmath
 import time
 
 
@@ -43,7 +44,7 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
 def update_file(te_vortex_z, iteration):
     heading = 'result_file.txt'
     file1 = open(heading, "a+")
-    file1.write('te_vortex_z - iteration ' + str(iteration+1) + '\n' + str(list(te_vortex_z)) + '\n')
+    file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
 def write_array(circulation, te_vortex_strength, iterate_time_step):
@@ -78,17 +79,20 @@ iterate_time = start
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-free_velocity = 5
-free_aoa = 10.0
+re_num = 1e5
+density = 1.225
+viscosity = 1.789e-5
+free_velocity = re_num*viscosity/density
+free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
-pl_amplitude = 0
-pl_frequency = 0
+pl_amplitude = 0.5
+pl_frequency = 1
 # ------ pitching parameters
 pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
-distance = 0.01
+distance = 0.001
 angle = 0
 angle = np.deg2rad(angle)
 # ------ data store
@@ -99,30 +103,35 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.0001
+time_step = 0.001
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 10
+iteration = 100
 
-
+# trailing edge position in v plane
+trailing_edge_v_previous = center_circle + radius
 
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-             time_step, current_time, iteration, distance, angle)
+          time_step, current_time, iteration, distance, angle)
 
 # ------ iteration code
 for iterate in range(iteration):
     print('Iteration - ' + str(iterate + 1))
 
     # ------ calculate trailing edge position
+    plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+    plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
 
     search_point = center_circle + radius
     trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
+    trailing_edge_v_previous = trailing_edge_v
 
     # --- calculate velocity
-    velocity = free_velocity
-    aoa = free_aoa
+    vel_val = cmath.polar(free_velocity * pow(np.e, 1j * free_aoa) + plunging_vel)
+    velocity = vel_val[0]
+    aoa = vel_val[1]
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
@@ -193,7 +202,7 @@ for iterate in range(iteration):
     vs = vs.reshape(len(te_vortex_strength) - 1, len(te_vortex_strength))
     vs = np.transpose(vs)
 
-    p = p1+p2
+    p = p1 + p2
     if len(u) > 1:
         p3 = - 1j * vs * ((1 / (u - vc)) + (1 / (u * (1 - u * vc)))) / (2 * np.pi)
         p3 = sum(np.transpose(p3))

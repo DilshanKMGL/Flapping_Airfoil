@@ -59,9 +59,12 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-free_velocity = 5
-free_aoa = -5
-end_aoa = 10
+re_num = 1e5
+density = 1.225
+viscosity = 1.789e-5
+free_velocity = re_num*viscosity/density
+free_aoa = -10
+end_aoa = 14
 
 make_file(airfoil, free_velocity, free_aoa, end_aoa)
 
