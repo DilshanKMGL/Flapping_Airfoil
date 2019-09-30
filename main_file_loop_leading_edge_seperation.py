@@ -43,7 +43,7 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
 def update_file(te_vortex_z, iteration):
     heading = 'result_file.txt'
     file1 = open(heading, "a+")
-    file1.write('te_vortex_z - iteration ' + str(iteration+1) + '\n' + str(list(te_vortex_z)) + '\n')
+    file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
 def write_array(circulation, te_vortex_strength, iterate_time_step):
@@ -81,7 +81,7 @@ N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read
 re_num = 1e5
 density = 1.225
 viscosity = 1.789e-5
-free_velocity = re_num*viscosity/density
+free_velocity = re_num * viscosity / density
 free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
@@ -100,37 +100,45 @@ te_vortex_strength = np.array([])
 te_vortex_z = np.array([])
 te_vortex_v = np.array([])
 te_vortex_u = np.array([])
+
+le_vortex_strength = np.array([])
+le_vortex_z = np.array([])
+le_vortex_v = np.array([])
+le_vortex_u = np.array([])
+
 iterate_time_step = np.array([])
-# ------ time step
-time_step = 0.01
-# " if the time step > 0.001, sudden variation of vortex position"
+
+time_step = 0.01  # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
 iteration = 1000
-# LESP - critical velocity initialization
-v_crit = 2.0
+
+v_crit = 2.0  # LESP - critical velocity initialization
 
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-             time_step, current_time, iteration, distance, angle)
+          time_step, current_time, iteration, distance, angle)
 
 # ------ iteration code
 for iterate in range(iteration):
     print('Iteration - ' + str(iterate + 1))
+
+    # --- calculate velocity of the freestream - this will modify for plunging and flapping motion
+    velocity = free_velocity
+    aoa = free_aoa
 
     # ------ calculate trailing edge position
     search_point = center_circle + radius
     trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
-    # ------ calculate trailing edge position
-    leading_edge_z = min(z_plane)
+    # ------ calculate leading edge position
+    leading_edge_z = min(z_plane.real)
+    print(leading_edge_z, min(z_plane))
     search_point = center_circle - radius
     leading_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, leading_edge_z))
     leading_edge_u = complex((leading_edge_v - center_circle) / radius)
 
-    # --- calculate velocity
-    velocity = free_velocity
-    aoa = free_aoa
+    # ------ calculate leading edge velocity
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
@@ -143,20 +151,9 @@ for iterate in range(iteration):
     te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
     # ------ create function to calculate circulation
-    s = sum(te_vortex_strength)
-    d1 = -1j / (2 * np.pi * trailing_edge_u)
-    d2 = 1j * ((1 / (trailing_edge_u - new_vortex_position_u)) +
-               (1 / (trailing_edge_u * (1 - trailing_edge_u * new_vortex_position_u)))) / (2 * np.pi)
-    d3 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (trailing_edge_u ** 2)))
-
-    d4 = - 1j * te_vortex_strength * ((1 / (trailing_edge_u - te_vortex_u[:-1])) +
-                                      (1 / (trailing_edge_u * (1 - trailing_edge_u * te_vortex_u[:-1])))) / (2 * np.pi)
-    d4 = sum(d4)
-    circulation = complex((- (s * d2 + d3 + d4) / (d1 + d2))).real
-    circulation_list = np.append(circulation_list, [circulation])
-    te_vortex_strength = np.append(te_vortex_strength, [-s - circulation])
 
     # - calculate derivative
+    '''
     # te_vortex_v = te_vortex_u * radius + center_circle
     svc = te_vortex_v - center_circle
     svc = np.array(list(svc) * len(Gkn))
@@ -224,7 +221,7 @@ for iterate in range(iteration):
                    for index in range(len(te_vortex_z))]
     te_vortex_v = np.array(te_vortex_v)
     te_vortex_u = (te_vortex_v - center_circle) / radius
-
+    '''
     current_time += time_step
 
 write_array(circulation_list, te_vortex_strength, iterate_time_step)

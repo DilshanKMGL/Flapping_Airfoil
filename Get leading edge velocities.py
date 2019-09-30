@@ -60,44 +60,67 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-re_num = 1e5
+re_num = 10e5
 density = 1.225
 viscosity = 1.789e-5
-free_velocity = 10  # re_num*viscosity/density
-free_aoa = -10
-end_aoa = 14
+free_velocity = re_num * viscosity / density
+print(free_velocity)
+free_aoa = -5
+end_aoa = 5
 velocity_array = []
 x_axis = []
 make_file(airfoil, free_velocity, free_aoa, end_aoa)
 
-for angle in np.arange(free_aoa, end_aoa, 0.2):
+for angle in np.arange(free_aoa, end_aoa, 0.1):
     x_axis.append(angle)
-    print('Angle of Attack ' + str(round(angle, 2)))
-    free_aoa = np.deg2rad(angle)
+    # print('Angle of Attack ' + str(round(angle, 2)))
+    current_aoa = np.deg2rad(angle)
+
+    # ------ calculate trailing edge position
     search_point = center_circle + radius
     trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-    u1 = free_velocity * ((1 / pow(np.e, 1j * free_aoa)) - (pow(np.e, 1j * free_aoa) / (trailing_edge_u ** 2)))
-    u2 = -1j / (2 * np.pi * trailing_edge_u)
-    steady_circulation = complex(- u1 / u2)
 
+    # ------ calculate leading edge position
     leading_edge_z = min(z_plane)
     search_point = center_circle - radius
     leading_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, leading_edge_z))
     leading_edge_u = complex((leading_edge_v - center_circle) / radius)
-    leading_edge_vel = -1j * steady_circulation / (2 * np.pi * leading_edge_u) + \
-                       free_velocity * ((1 / pow(np.e, 1j * free_aoa)) -
-                                        (pow(np.e, 1j * free_aoa) / (leading_edge_u ** 2)))
-    velocity_array.append(abs(leading_edge_vel))
+
+    # ------ calculate circulation
+    u1 = free_velocity * (pow(np.e, -1j * current_aoa) - (pow(np.e, 1j * current_aoa) / (trailing_edge_u ** 2)))
+    u2 = - 1j / (2 * np.pi * trailing_edge_u)
+    steady_circulation = complex(- u1 / u2)
+
+    # ------ calculate derivative
+    Gkn = np.array(Gkn)
+    power = np.arange(1, len(Gkn) + 1)
+    svc = leading_edge_v - center_circle
+    dzdv = 1 - Gkn * power * radius ** power / svc ** (power + 1)
+    dvdu = radius
+    dudz = 1 / (dvdu * dzdv)
+    dudz = sum(dudz)
+
+    # ------ calculate leading edge velocity
+    vel_u_conj = -1j * steady_circulation / (2 * np.pi * leading_edge_u) + \
+                 free_velocity * ((1 / pow(np.e, 1j * current_aoa)) -
+                                  (pow(np.e, 1j * current_aoa) / (leading_edge_u ** 2)))
+    leading_edge_vel_z = np.conj(vel_u_conj * dudz)
+    velocity_array.append(abs(leading_edge_vel_z))
+    # velocity_array.append(leading_edge_vel_z)
 
     write_array(round(angle, 2), steady_circulation.real)
+    if float(angle) == 0.0:
+        print(leading_edge_vel_z)
 
 heading = 'initial_circulation.txt'
 file1 = open(heading, "a+")
+# y_val = [abs(i) for i in velocity_array]
+y_val = velocity_array
 file1.write('leading edge circulation\n' + str(list(velocity_array)))
 file1.close()
 
-plt.plot(x_axis, velocity_array)
+plt.plot(x_axis, y_val)
 plt.grid()
 plt.title('leading_edge_vel vs angle of attack')
 plt.xlabel('aoa')
