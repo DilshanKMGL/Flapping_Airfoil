@@ -106,8 +106,8 @@ time_step = 0.01
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
 iteration = 1000
-
-
+# LESP - critical velocity initialization
+v_crit = 2.0
 
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
@@ -118,16 +118,19 @@ for iterate in range(iteration):
     print('Iteration - ' + str(iterate + 1))
 
     # ------ calculate trailing edge position
-
     search_point = center_circle + radius
     trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-    
+
+    # ------ calculate trailing edge position
+    leading_edge_z = min(z_plane)
+    search_point = center_circle - radius
+    leading_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, leading_edge_z))
+    leading_edge_u = complex((leading_edge_v - center_circle) / radius)
+
     # --- calculate velocity
     velocity = free_velocity
     aoa = free_aoa
-    # print(velocity)
-    # print(aoa)
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
