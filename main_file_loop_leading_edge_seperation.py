@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from matplotlib import pyplot as plt
 
 
 def read_data(heading):
@@ -82,8 +83,8 @@ re_num = 1e5
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
-free_aoa = 0.0
-free_aoa = np.deg2rad(free_aoa)
+free_aoa = 0.0  # in degrees
+
 # ------ plunging parameters
 pl_amplitude = 0
 pl_frequency = 0
@@ -91,7 +92,7 @@ pl_frequency = 0
 pi_amplitude = 0
 pi_frequency = 0
 # ------ new vortex
-distance = 0.001
+distance = 0.01
 angle = 0
 angle = np.deg2rad(angle)
 # ------ data store
@@ -110,9 +111,10 @@ iterate_time_step = np.array([])
 
 time_step = 0.01  # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 1000
+iteration = 1
 
 v_crit = 2.0  # LESP - critical velocity initialization
+cal_les = False
 
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
@@ -124,7 +126,7 @@ for iterate in range(iteration):
 
     # --- calculate velocity of the freestream - this will modify for plunging and flapping motion
     velocity = free_velocity
-    aoa = free_aoa
+    aoa = np.deg2rad(free_aoa)
 
     # ------ calculate trailing edge position
     search_point = center_circle + radius
@@ -132,97 +134,113 @@ for iterate in range(iteration):
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
     # ------ calculate leading edge position
-    leading_edge_z = min(z_plane.real)
-    print(leading_edge_z, min(z_plane))
+    leading_edge_z = complex(min(z_plane))
     search_point = center_circle - radius
     leading_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, leading_edge_z))
     leading_edge_u = complex((leading_edge_v - center_circle) / radius)
 
-    # ------ calculate leading edge velocity
-
-    # ------ calculate new vortex position
-    new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
-    new_vortex_position_z = complex(new_vortex_position_z)
+    # ------ calculate trailing edge vortex position
+    new_te_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
+    new_te_vortex_position_z = complex(new_te_vortex_position_z)
     search_point = center_circle + radius
-    new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
-    new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+    new_te_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                              new_te_vortex_position_z))
+    new_te_vortex_position_u = complex((new_te_vortex_position_v - center_circle) / radius)
 
-    # ------ create function to calculate circulation
+    # ------ calculate trailing edge vortex strength and circulation
+    # freestream component
+    p1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+    # circulation component
+    p2 = -1j / (2 * np.pi * trailing_edge_u)
+    # newly sheded vortex
+    p3 = -1j * (1 / (trailing_edge_u - new_te_vortex_position_u) +
+                1 / (trailing_edge_u * (1 - trailing_edge_u * new_te_vortex_position_u))) / (2 * np.pi)
+    # previously shed trailing edge vortices
+    p4 = -1j * te_vortex_strength * (1 / (trailing_edge_u - te_vortex_u) +
+                                     1 / (trailing_edge_u * (1 - trailing_edge_u * te_vortex_u))) / (2 * np.pi)
+    p4 = sum(p4)  # convert array --> single_value
+    # previously shed leading edge vortices
+    p5 = -1j * le_vortex_strength * (1 / (trailing_edge_u - le_vortex_u) +
+                                     1 / (trailing_edge_u * (1 - trailing_edge_u * le_vortex_u))) / (2 * np.pi)
+    p5 = sum(p5)  # convert array --> single value
+    # total vortex strength
+    s = sum(te_vortex_strength) + sum(le_vortex_strength)
+    strength_t = (p2 * s - p4 - p5 - p1) / (p3 - p2)
+    circulation = -strength_t - s
 
-    # - calculate derivative
-    '''
-    # te_vortex_v = te_vortex_u * radius + center_circle
-    svc = te_vortex_v - center_circle
-    svc = np.array(list(svc) * len(Gkn))
-    svc = svc.reshape(len(Gkn), len(te_vortex_u))
-    svc = np.transpose(svc)
+    # ------ calculate leading edge velocity
+    # - calculate complex_potential
+    # freestream component
+    p1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / leading_edge_u ** 2)
+    # circulation component
+    p2 = -1j * circulation / (2 * np.pi * leading_edge_u)
+    # newly sheded vortex
+    p3 = -1j * strength_t * (1 / (leading_edge_u - new_te_vortex_position_u) +
+                             1 / (leading_edge_u * (1 - leading_edge_u * new_te_vortex_position_u))) / (2 * np.pi)
+    # previously shed trailing edge vortices
+    p4 = -1j * te_vortex_strength * (1 / (leading_edge_u - te_vortex_u) +
+                                     1 / (leading_edge_u * (1 - leading_edge_u * te_vortex_u))) / (2 * np.pi)
+    p4 = sum(p4)  # convert array --> single_value
+    # previously shed leading edge vortices
+    p5 = -1j * le_vortex_strength * (1 / (leading_edge_u - le_vortex_u) +
+                                     1 / (leading_edge_u * (1 - leading_edge_u * le_vortex_u))) / (2 * np.pi)
+    p5 = sum(p5)  # convert array --> single value
 
-    Gkncoeff = np.array(list(Gkn) * len(te_vortex_v))
-    Gkncoeff = Gkncoeff.reshape(len(te_vortex_u), len(Gkn))
-
+    # - calculate derivatives
+    dwdu = p1 + p2 + p3 + p4 + p5
     power = np.arange(1, len(Gkn) + 1)
-    power = np.array(list(power) * len(te_vortex_u))
-    power = power.reshape(len(te_vortex_u), len(Gkn))
+    dzdv = 1 - sum(power * Gkn * radius ** power / (leading_edge_v - center_circle) ** (power + 1))
+    dudv = 1 / radius
 
-    dzdv = 1 - Gkncoeff * power * radius ** power / svc ** (power + 1)
-    d2zdv2 = power * (power + 1) * Gkncoeff * radius ** power / svc ** (power + 2)
-    dvdu = radius
-    dudz = 1 / (dvdu * dzdv)
-    d2udz2 = - d2zdv2 / dzdv ** 3
+    # Calculate leading edge velocity
+    le_vel_conj = dwdu * dudv / dzdv
+    le_vel = np.conj(le_vel_conj)
 
-    # ------ iterate time
-    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
-    update_file(te_vortex_z, iterate)
+    # ------ calculate leading edge vortex position
+    new_le_vortex_position_z = leading_edge_z - distance * pow(np.e, -1j * angle)
+    new_le_vortex_position_z = complex(new_le_vortex_position_z)
+    search_point = center_circle - radius
+    new_le_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                              new_le_vortex_position_z))
+    new_le_vortex_position_u = complex((new_le_vortex_position_v - center_circle) / radius)
 
-    # ------ move vortices
-    p1 = -1j * circulation / te_vortex_u / (2 * np.pi)
-    p2 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (te_vortex_u ** 2)))
+    if le_vel > v_crit and cal_les:
+        # freestream component
+        p1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+        # circulation component
+        p2 = -1j * circulation / (2 * np.pi * trailing_edge_u)
+        # newly shed vortex - trailing edge
 
-    u = te_vortex_u.copy()
-    u = np.array(list(u) * len(u))
-    u = u.reshape(len(te_vortex_u), len(te_vortex_u))
-    strided = np.lib.stride_tricks.as_strided
-    s0, s1 = u.strides
-    u = strided(u.ravel()[1:], shape=(len(u) - 1, len(u)), strides=(s0 + s1, s1)).reshape(len(u), -1)
+    # ------ append all variables to corresponding arrays
+    te_vortex_z = np.append(te_vortex_z, [new_te_vortex_position_z])
+    te_vortex_v = np.append(te_vortex_v, [new_te_vortex_position_v])
+    te_vortex_u = np.append(te_vortex_u, [new_te_vortex_position_u])
 
-    vc = te_vortex_u.copy()
-    vc = np.array(list(vc) * (len(vc) - 1))
-    vc = vc.reshape(len(te_vortex_u) - 1, len(te_vortex_u))
-    vc = np.transpose(vc)
-
-    vs = np.transpose(te_vortex_strength).copy()
-    vs = np.array(list(vs) * (len(vs) - 1))
-    vs = vs.reshape(len(te_vortex_strength) - 1, len(te_vortex_strength))
-    vs = np.transpose(vs)
-
-    p = p1+p2
-    if len(u) > 1:
-        p3 = - 1j * vs * ((1 / (u - vc)) + (1 / (u * (1 - u * vc)))) / (2 * np.pi)
-        p3 = sum(np.transpose(p3))
-        p += p3
-
-    p = np.array(list(p) * len(Gkn))
-    p = p.reshape(len(Gkn), len(te_vortex_u))
-    p = np.transpose(p)
-
-    te_vortex = np.array(list(te_vortex_u) * len(Gkn))
-    te_vortex = te_vortex.reshape(len(Gkn), len(te_vortex_u))
-    te_vortex = np.transpose(te_vortex)
-
-    vel_conj = p * dudz - 1j * te_vortex * d2udz2 / dudz / (4 * np.pi)
-    vel_conj = sum(np.transpose(vel_conj))
-    te_vortex_vel = np.conj(vel_conj)
-    te_vortex_z = te_vortex_z + te_vortex_vel * time_step
-
-    te_vortex_v = [newton(te_vortex_v[index], 1e-8, 50, Gkn, radius, center_circle, te_vortex_z[index])
-                   for index in range(len(te_vortex_z))]
-    te_vortex_v = np.array(te_vortex_v)
-    te_vortex_u = (te_vortex_v - center_circle) / radius
-    '''
     current_time += time_step
 
 write_array(circulation_list, te_vortex_strength, iterate_time_step)
 print('total time ', time.time() - start)
+
+# plot selected leading and trailing edges of the airfoil and respective plane
+'''
+plt.plot(z_plane.real, z_plane.imag, color='b')
+plt.scatter(trailing_edge_z.real, trailing_edge_z.imag, color='b')
+plt.scatter(leading_edge_z.real, leading_edge_z.imag, color='b')
+plt.scatter(new_le_vortex_position_z.real, new_le_vortex_position_z.imag, color='black')
+plt.scatter(new_te_vortex_position_z.real, new_te_vortex_position_z.imag, color='black')
+
+plt.plot(v_plane.real, v_plane.imag, color='g')
+plt.scatter(trailing_edge_v.real, trailing_edge_v.imag, color='g')
+plt.scatter(leading_edge_v.real, leading_edge_v.imag, color='g')
+plt.scatter(new_le_vortex_position_v.real, new_le_vortex_position_v.imag, color='black')
+plt.scatter(new_te_vortex_position_v.real, new_te_vortex_position_v.imag, color='black')
+
+plt.plot(u_plane.real, u_plane.imag, color='r')
+plt.scatter(trailing_edge_u.real, trailing_edge_u.imag, color='r')
+plt.scatter(leading_edge_u.real, leading_edge_u.imag, color='r')
+plt.scatter(new_le_vortex_position_u.real, new_le_vortex_position_u.imag, color='black')
+plt.scatter(new_te_vortex_position_u.real, new_te_vortex_position_u.imag, color='black')
+
+plt.gca().set_aspect('equal', adjustable='box')
+plt.show()
+'''
