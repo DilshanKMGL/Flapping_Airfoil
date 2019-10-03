@@ -57,7 +57,7 @@ airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', 
                 '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
                 '6409', '6412']
 
-re_num = 10e6
+re_num = 10e7
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
@@ -66,7 +66,8 @@ end_aoa = 19
 
 for airfoil_number in airfoil_list:
     airfoil = 'NACA' + airfoil_number
-    heading = 'Steady state solution results/' + airfoil + ' - ' + str(re_num) + 'steady state resuts.txt'
+    re_number_str = '10,'+str((len(str(re_num))-4))
+    heading = 'Steady state solution results/' + airfoil + ' - ' + re_number_str + ' - steady state resuts.txt'
     N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
 
@@ -75,11 +76,11 @@ for airfoil_number in airfoil_list:
 
     for angle in np.arange(free_aoa, end_aoa, 0.1):
         # print('Angle of Attack ' + str(round(angle, 2)))
-        free_aoa = np.deg2rad(angle)
+        angle_rad = np.deg2rad(angle)
         search_point = center_circle + radius
         trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
         trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-        u1 = free_velocity * ((1 / pow(np.e, 1j * free_aoa)) - (pow(np.e, 1j * free_aoa) / (trailing_edge_u ** 2)))
+        u1 = free_velocity * ((1 / pow(np.e, 1j * angle_rad)) - (pow(np.e, 1j * angle_rad) / (trailing_edge_u ** 2)))
         u2 = -1j / (2 * np.pi * trailing_edge_u)
         steady_circulation = complex(- u1 / u2)
         write_array(round(angle, 2), steady_circulation.real, heading)
