@@ -79,11 +79,11 @@ iterate_time = start
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-re_num = 1e5
+re_num = 1.5e5
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
-free_aoa = 0.0  # in degrees
+free_aoa = 5.0  # in degrees
 
 # ------ plunging parameters
 pl_amplitude = 0
@@ -114,7 +114,7 @@ current_time = 0.00
 iteration = 1
 
 v_crit = 2.0  # LESP - critical velocity initialization
-cal_les = False
+cal_les = True
 
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
@@ -205,7 +205,8 @@ for iterate in range(iteration):
                                               new_le_vortex_position_z))
     new_le_vortex_position_u = complex((new_le_vortex_position_v - center_circle) / radius)
 
-    if le_vel > v_crit and cal_les:
+    print(abs(le_vel))
+    if abs(le_vel) > v_crit and cal_les:
         # calculate trailing edge boundary condition
         # freestream component
         p1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
@@ -256,19 +257,33 @@ for iterate in range(iteration):
         C3 = (B2 - e2 * B3) / (e3 - e2)
         C4 = (B1 - p2 * B3) / (p3 - p2)
 
-        strength_l = (C3 - C4)/(C1-C2)
-        strength_t = C4 - strength_l*C2
+        strength_l = (C3 - C4) / (C1 - C2)
+        strength_t = C4 - strength_l * C2
         circulation = B3 - strength_l - strength_t
+
+        le_vortex_z = np.append(le_vortex_z, [new_le_vortex_position_z])
+        le_vortex_v = np.append(le_vortex_v, [new_le_vortex_position_v])
+        le_vortex_u = np.append(le_vortex_u, [new_le_vortex_position_u])
+        le_vortex_strength = np.append(le_vortex_strength, [strength_l])
 
     # ------ append all variables to corresponding arrays
     te_vortex_z = np.append(te_vortex_z, [new_te_vortex_position_z])
     te_vortex_v = np.append(te_vortex_v, [new_te_vortex_position_v])
     te_vortex_u = np.append(te_vortex_u, [new_te_vortex_position_u])
+    te_vortex_strength = np.append(te_vortex_strength, [strength_t])
+    circulation_list = np.append(circulation_list, [circulation])
 
     current_time += time_step
 
 write_array(circulation_list, te_vortex_strength, iterate_time_step)
 print('total time ', time.time() - start)
+
+# plot trailing edge and leading edge vortices
+plt.plot(z_plane.real, z_plane.imag)
+plt.scatter(te_vortex_z.real, te_vortex_z.imag)
+plt.scatter(le_vortex_z.real, le_vortex_z.imag)
+plt.gca().set_aspect('equal', adjustable='box')
+plt.show()
 
 # plot selected leading and trailing edges of the airfoil and respective plane
 '''

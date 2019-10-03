@@ -35,8 +35,8 @@ for i in range(iteration):
 
     # plt.xlim(-5, 60)
     # plt.ylim(-20, 20)
-    plt.xlim(-0.1, 5)
-    plt.ylim(-5, 5)
+    # plt.xlim(-0.1, 5)
+    # plt.ylim(-5, 5)
 
     plt.axis('off')
     plt.grid(False)
