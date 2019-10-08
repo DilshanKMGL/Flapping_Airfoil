@@ -3,7 +3,7 @@ import time
 
 
 def read_data(heading):
-    heading = str(heading) + '_data.txt'
+    heading = 'Airfoil_data/' + str(heading) + '_data.txt'
     file1 = open(heading, 'r')
     line = file1.readlines()
 
@@ -55,6 +55,7 @@ def write_array(circulation, te_vortex_strength, iterate_time_step):
     file1.close()
 
 
+# mapping function should be validated
 def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
     xn = x0
     for n in range(0, max_iter):
@@ -67,7 +68,7 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
         if Dfxn == 0:
             # print('Zero derivative. No solution found.')
             return None
-        xn = (xn - fxn / Dfxn)
+        xn -= fxn / Dfxn
     print('Exceeded maximum iterations. No solution found.')
     return None
 
@@ -78,7 +79,7 @@ iterate_time = start
 airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-re_num = 1e7
+re_num = 10e5
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num*viscosity/density
@@ -102,13 +103,13 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.01
+time_step = 0.02
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 1000
+iteration = 500
 
 
-
+print(free_velocity)
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
              time_step, current_time, iteration, distance, angle)
