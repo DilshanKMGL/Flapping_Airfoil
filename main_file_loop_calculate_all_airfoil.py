@@ -84,7 +84,7 @@ for airfoil_number in airfoil_list:
     airfoil = 'NACA' + airfoil_number
     N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
-    re_num = 10e5
+    re_num = 10e6
     density = 1.225
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
