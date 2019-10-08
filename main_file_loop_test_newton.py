@@ -21,7 +21,7 @@ def read_data(heading):
 
 def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+    heading = 'result_file.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
@@ -41,13 +41,13 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
 
 
 def update_file(te_vortex_z, iteration):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+    heading = 'result_file.txt'
     file1 = open(heading, "a+")
     file1.write('te_vortex_z - iteration ' + str(iteration+1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
 def write_array(circulation, te_vortex_strength, iterate_time_step):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+    heading = 'result_file.txt'
     file1 = open(heading, "a+")
     file1.write('circulation\n' + str(list(circulation)) + '\n')
     file1.write('te_vortex_strength\n' + str(list(te_vortex_strength)) + '\n')
@@ -56,21 +56,18 @@ def write_array(circulation, te_vortex_strength, iterate_time_step):
 
 
 # mapping function should be validated
-def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
+def newton(x0, Gkn, radius, center_circle, equal_val):
     xn = x0
-    for n in range(0, max_iter):
-        power = np.arange(1, len(Gkn) + 1)
+    epsilon = 1e-8
+
+    power = np.arange(1, len(Gkn) + 1)
+    while True:
         fxn = xn + sum(Gkn * (radius / (xn - center_circle)) ** power) - equal_val
         if abs(fxn) < epsilon:
-            # print('Found solution after', n, 'iterations.')
-            return xn
-        Dfxn = 1 - sum(power * Gkn * ((radius ** power) / (xn - center_circle) ** (power + 1)))
-        if Dfxn == 0:
-            # print('Zero derivative. No solution found.')
-            return None
-        xn -= fxn / Dfxn
-    print('Exceeded maximum iterations. No solution found.')
-    return None
+            break
+        dfxn = 1 - sum(Gkn * power * (radius ** power / (xn - center_circle)) ** (power + 1))
+        xn -= fxn / dfxn
+    return xn
 
 
 start = time.time()
@@ -103,10 +100,10 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.01
+time_step = 0.02
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 1500
+iteration = 100
 
 
 print(free_velocity)
@@ -121,7 +118,7 @@ for iterate in range(iteration):
     # ------ calculate trailing edge position
 
     search_point = center_circle + radius
-    trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
+    trailing_edge_v = complex(newton(search_point, Gkn, radius, center_circle, trailing_edge_z))
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
     # --- calculate velocity
@@ -134,7 +131,7 @@ for iterate in range(iteration):
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
     new_vortex_position_z = complex(new_vortex_position_z)
     search_point = center_circle + radius
-    new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
+    new_vortex_position_v = complex(newton(search_point, Gkn, radius, center_circle, new_vortex_position_z))
     new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
     te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
     te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
@@ -218,7 +215,7 @@ for iterate in range(iteration):
     te_vortex_vel = np.conj(vel_conj)
     te_vortex_z = te_vortex_z + te_vortex_vel * time_step
 
-    te_vortex_v = [newton(te_vortex_v[index], 1e-8, 50, Gkn, radius, center_circle, te_vortex_z[index])
+    te_vortex_v = [newton(te_vortex_v[index], Gkn, radius, center_circle, te_vortex_z[index])
                    for index in range(len(te_vortex_z))]
     te_vortex_v = np.array(te_vortex_v)
     te_vortex_u = (te_vortex_v - center_circle) / radius

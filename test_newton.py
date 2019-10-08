@@ -20,21 +20,16 @@ def read_data(heading):
 
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data('NACA2412')
 
-equal_val = 0
+equal_val = trailing_edge_z
 epsilon = 1e-8
-xn = 0
+xn = center_circle + radius
 power = np.arange(1, len(Gkn) + 1)
 
-""""
 while True:
-
     fxn = xn + sum(Gkn * (radius / (xn - center_circle)) ** power) - equal_val
-    print(fxn)
     if abs(fxn) < epsilon:
-        print(epsilon)
         break
     dfxn = 1 - sum(Gkn * power * (radius ** power / (xn - center_circle)) ** (power + 1))
     xn -= fxn / dfxn
-
 print(xn)
-"""
+# (0.7589761712369115+0.002230175020331722j)

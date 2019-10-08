@@ -64,23 +64,23 @@ free_velocity = re_num * viscosity / density
 free_aoa = -10
 end_aoa = 19
 
+for airfoil_number in airfoil_list:
+    airfoil = 'NACA' + airfoil_number
+    re_number_str = '10,'+str((len(str(re_num))-4))
+    heading = 'Steady_state_solution_results/' + airfoil + ' - ' + re_number_str + ' - steady state resuts.txt'
+    N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
+    # ------ free stream velocity
 
-airfoil = 'NACA2412'
-re_number_str = '10,'+str((len(str(re_num))-4))
-heading = 'Steady_state_solution_results/' + airfoil + ' - ' + re_number_str + ' - steady state resuts.txt'
-N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
-# ------ free stream velocity
+    make_file(airfoil, free_velocity, free_aoa, end_aoa, heading)
+    print(airfoil)
 
-make_file(airfoil, free_velocity, free_aoa, end_aoa, heading)
-print(airfoil)
-
-for angle in np.arange(free_aoa, end_aoa, 0.1):
-    # print('Angle of Attack ' + str(round(angle, 2)))
-    angle_rad = np.deg2rad(angle)
-    search_point = center_circle + radius
-    trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
-    trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-    u1 = free_velocity * ((1 / pow(np.e, 1j * angle_rad)) - (pow(np.e, 1j * angle_rad) / (trailing_edge_u ** 2)))
-    u2 = -1j / (2 * np.pi * trailing_edge_u)
-    steady_circulation = complex(- u1 / u2)
-    write_array(round(angle, 2), steady_circulation.real, heading)
+    for angle in np.arange(free_aoa, end_aoa, 0.1):
+        # print('Angle of Attack ' + str(round(angle, 2)))
+        angle_rad = np.deg2rad(angle)
+        search_point = center_circle + radius
+        trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
+        trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
+        u1 = free_velocity * ((1 / pow(np.e, 1j * angle_rad)) - (pow(np.e, 1j * angle_rad) / (trailing_edge_u ** 2)))
+        u2 = -1j / (2 * np.pi * trailing_edge_u)
+        steady_circulation = complex(- u1 / u2)
+        write_array(round(angle, 2), steady_circulation.real, heading)
