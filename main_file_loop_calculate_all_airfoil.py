@@ -113,7 +113,6 @@ for airfoil_number in airfoil_list:
     current_time = 0.00
     iteration = 1500
 
-    print(free_velocity)
     # ----- write in a file
     make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle)
