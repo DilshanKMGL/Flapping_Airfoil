@@ -20,8 +20,8 @@ def read_data(heading):
 
 
 def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+              time_step, current_time, iteration, distance, angle, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
@@ -40,14 +40,14 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
     file1.close()
 
 
-def update_file(te_vortex_z, iteration):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def update_file(te_vortex_z, iteration, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
-def write_array(circulation, te_vortex_strength, iterate_time_step):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('circulation\n' + str(list(circulation)) + '\n')
     file1.write('te_vortex_strength\n' + str(list(te_vortex_strength)) + '\n')
@@ -73,15 +73,19 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
     return None
 
 
-airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
-                '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
-                '6409', '6412']
+# ------ new vortex
+start_distance = 0.001
+end_distance = 0.011
+angle = 0
 
-for airfoil_number in airfoil_list:
+for distance in np.arange(start_distance, end_distance, 0.001):
+    angle = np.deg2rad(angle)
+    heading_file = 'Transient_solution_results/' + 'result_file_' + str(distance) + '.txt'
+
     start = time.time()
     iterate_time = start
     # ------ airfoil data
-    airfoil = 'NACA' + airfoil_number
+    airfoil = 'NACA2412'
     N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
     re_num = 10e5
@@ -96,10 +100,7 @@ for airfoil_number in airfoil_list:
     # ------ pitching parameters
     pi_amplitude = 0
     pi_frequency = 0
-    # ------ new vortex
-    distance = 0.001
-    angle = 0
-    angle = np.deg2rad(angle)
+
     # ------ data store
     circulation_list = np.array([])
     te_vortex_strength = np.array([])
@@ -115,17 +116,18 @@ for airfoil_number in airfoil_list:
 
     # ----- write in a file
     make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle)
+              time_step, current_time, iteration, distance, angle, heading_file)
 
-    print(airfoil)
     # ------ iteration code
+    print(airfoil, distance)
     for iterate in range(iteration):
-        # print(airfoil + ' Iteration - ' + str(iterate + 1))
+        # print('Iteration - ' + str(iterate + 1))
 
         # ------ calculate trailing edge position
 
         search_point = center_circle + radius
-        trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
+        trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn,
+                                         radius, center_circle, trailing_edge_z))
         trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
         # --- calculate velocity
@@ -138,8 +140,8 @@ for airfoil_number in airfoil_list:
         new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
         new_vortex_position_z = complex(new_vortex_position_z)
         search_point = center_circle + radius
-        new_vortex_position_v = complex(
-            newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
+        new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn,
+                                               radius, center_circle, new_vortex_position_z))
         new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
         te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
         te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
@@ -153,8 +155,8 @@ for airfoil_number in airfoil_list:
         d3 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (trailing_edge_u ** 2)))
 
         d4 = - 1j * te_vortex_strength * ((1 / (trailing_edge_u - te_vortex_u[:-1])) +
-                                          (1 / (trailing_edge_u * (1 - trailing_edge_u * te_vortex_u[:-1])))) / (
-                         2 * np.pi)
+                                          (1 / (trailing_edge_u *
+                                                (1 - trailing_edge_u * te_vortex_u[:-1])))) / (2 * np.pi)
         d4 = sum(d4)
         circulation = complex((- (s * d2 + d3 + d4) / (d1 + d2))).real
         circulation_list = np.append(circulation_list, [circulation])
@@ -182,7 +184,7 @@ for airfoil_number in airfoil_list:
 
         # ------ iterate time
         iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
-        update_file(te_vortex_z, iterate)
+        update_file(te_vortex_z, iterate, heading_file)
 
         # ------ move vortices
         p1 = -1j * circulation / te_vortex_u / (2 * np.pi)
@@ -231,5 +233,5 @@ for airfoil_number in airfoil_list:
 
         current_time += time_step
 
-    write_array(circulation_list, te_vortex_strength, iterate_time_step)
+    write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
     print('total time ', time.time() - start)

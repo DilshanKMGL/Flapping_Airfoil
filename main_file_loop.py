@@ -20,8 +20,8 @@ def read_data(heading):
 
 
 def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+              time_step, current_time, iteration, distance, angle, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
@@ -40,14 +40,14 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
     file1.close()
 
 
-def update_file(te_vortex_z, iteration):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def update_file(te_vortex_z, iteration, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('te_vortex_z - iteration ' + str(iteration+1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
-def write_array(circulation, te_vortex_strength, iterate_time_step):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('circulation\n' + str(list(circulation)) + '\n')
     file1.write('te_vortex_strength\n' + str(list(te_vortex_strength)) + '\n')
@@ -108,11 +108,10 @@ time_step = 0.01
 current_time = 0.00
 iteration = 1500
 
-
-print(free_velocity)
+heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-             time_step, current_time, iteration, distance, angle)
+             time_step, current_time, iteration, distance, angle, heading_file)
 
 # ------ iteration code
 for iterate in range(iteration):
@@ -176,7 +175,7 @@ for iterate in range(iteration):
 
     # ------ iterate time
     iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
-    update_file(te_vortex_z, iterate)
+    update_file(te_vortex_z, iterate, heading_file)
 
     # ------ move vortices
     p1 = -1j * circulation / te_vortex_u / (2 * np.pi)
@@ -225,5 +224,5 @@ for iterate in range(iteration):
 
     current_time += time_step
 
-write_array(circulation_list, te_vortex_strength, iterate_time_step)
+write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
 print('total time ', time.time() - start)
