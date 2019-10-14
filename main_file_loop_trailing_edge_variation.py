@@ -74,11 +74,12 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 
 
 # ------ new vortex
-start_distance = 0.001
-end_distance = 0.011
-angle = 0
+start_distance = 0.01
+end_distance = 0.51
+angle = 25
 
-for distance in np.arange(start_distance, end_distance, 0.001):
+for distance in np.arange(start_distance, end_distance, 0.05):
+    distance = round(distance, 2)
     angle = np.deg2rad(angle)
     heading_file = 'Transient_solution_results/' + 'result_file_' + str(distance) + '.txt'
 
@@ -88,7 +89,7 @@ for distance in np.arange(start_distance, end_distance, 0.001):
     airfoil = 'NACA2412'
     N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
-    re_num = 10e5
+    re_num = 1e6
     density = 1.225
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
@@ -112,7 +113,7 @@ for distance in np.arange(start_distance, end_distance, 0.001):
     time_step = 0.01
     # " if the time step > 0.001, sudden variation of vortex position"
     current_time = 0.00
-    iteration = 1000
+    iteration = 750
 
     # ----- write in a file
     make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,

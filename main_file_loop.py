@@ -76,13 +76,13 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 start = time.time()
 iterate_time = start
 # ------ airfoil data
-airfoil = 'NACA2412'
+airfoil = 'joukowski'
 N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
-re_num = 10e5
+re_num = 1e5
 density = 1.225
 viscosity = 1.789e-5
-free_velocity = re_num*viscosity/density
+free_velocity = 20 # re_num*viscosity/density
 free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
@@ -106,7 +106,7 @@ iterate_time_step = np.array([])
 time_step = 0.01
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 1500
+iteration = 1000
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
