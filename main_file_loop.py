@@ -12,7 +12,7 @@ def read_data(heading):
     center_circle = complex(line[5].replace('i', 'j'))
     trailing_edge_z = complex(line[7].replace('i', 'j'))
     trailing_edge_v = complex(line[9].replace('i', 'j'))
-    Gkn = [complex(index.replace('i', 'j')) for index in line[11][:len(line[11]) - 3].split(' ')]
+    Gkn = np.asarray([complex(index.replace('i', 'j')) for index in line[11][:len(line[11]) - 3].split(' ')])
     z_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[13][:len(line[13]) - 3].split(' ')])
     v_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[15][:len(line[15]) - 3].split(' ')])
     u_plane = np.subtract(v_plane, center_circle) / r
@@ -77,7 +77,7 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 start = time.time()
 iterate_time = start
 # ------ airfoil data
-airfoil = 'joukowski'
+airfoil = 'NACA2412'
 N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
 re_num = 1e5
@@ -142,15 +142,32 @@ for iterate in range(iteration):
 
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
-    d1 = -1j / (2 * np.pi * trailing_edge_u)
-    d2 = 1j * ((1 / (trailing_edge_u - new_vortex_position_u)) +
-               (1 / (trailing_edge_u * (1 - trailing_edge_u * new_vortex_position_u)))) / (2 * np.pi)
-    d3 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (trailing_edge_u ** 2)))
+    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+    d2 = -1j / (2 * np.pi * trailing_edge_u * radius)
 
-    d4 = - 1j * te_vortex_strength * ((1 / (trailing_edge_u - te_vortex_u[:-1])) +
-                                      (1 / (trailing_edge_u * (1 - trailing_edge_u * te_vortex_u[:-1])))) / (2 * np.pi)
+    power = np.arange(1, len(Gkn) + 1)
+    p1 = (trailing_edge_u * radius + center_circle) + \
+         sum(Gkn / trailing_edge_u ** power) - \
+         new_vortex_position_u
+    p2 = radius / trailing_edge_u + \
+         sum(Gkn * (radius * trailing_edge_u / (radius - trailing_edge_u * center_circle)) ** 2) - \
+         new_vortex_position_u
+    p3 = radius - sum(Gkn * power / trailing_edge_u ** (power + 1))
+    p4 = radius / trailing_edge_u ** 2 - \
+         sum(Gkn * power * trailing_edge_u ** (power - 1) *
+             (radius / (radius - trailing_edge_u * center_circle)) ** (power + 1))
+    d3 = 1j / (2 * np.pi) * (p3 / p1 + p4 / p2)
+
+    p1 = (trailing_edge_u * radius + center_circle) + \
+         sum(Gkn / trailing_edge_u ** power) - \
+         te_vortex_u
+    p2 = radius / trailing_edge_u + \
+         sum(Gkn * (radius * trailing_edge_u / (radius - trailing_edge_u * center_circle)) ** 2) - \
+         te_vortex_u
+    d4 = - 1j / (2 * np.pi) * (p3 / p1 + p4 / p2)
     d4 = sum(d4)
-    circulation = complex((- (s * d2 + d3 + d4) / (d1 + d2))).real
+
+    circulation = complex(-(d1 + s * d3 + d4) / (d2 + d3)).real
     circulation_list = np.append(circulation_list, [circulation])
     te_vortex_strength = np.append(te_vortex_strength, [-s - circulation])
 

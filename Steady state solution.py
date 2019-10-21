@@ -86,21 +86,15 @@ for angle in np.arange(free_aoa, end_aoa, 0.1):
     # print('Angle of Attack ' + str(round(angle, 2)))
     angle_rad = np.deg2rad(angle)
 
-    # --- in v plane calculation
-    u1 = free_velocity * np.exp(-1j * angle_rad) - \
-         free_velocity * np.exp(1j * angle_rad) * radius ** 2 / (trailing_edge_v - center_circle) ** 2
-    u2 = - 1j / (trailing_edge_v - center_circle) / (2 * np.pi)
-
-    # --- in u plane calculation
-    """
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-    u1 = free_velocity * np.exp(-1j * angle_rad) - \
-         free_velocity * np.exp(1j * angle_rad) / trailing_edge_u ** 2
+    u1 = free_velocity * radius * \
+         (np.exp(-1j * angle_rad) - np.exp(1j * angle_rad) / trailing_edge_u ** 2)
     u2 = - 1j / trailing_edge_u / (2 * np.pi)
-    """
+
     steady_circulation = complex(- u1 / u2)
 
     write_array(round(angle, 2), steady_circulation.real, heading)
+
     # plt.plot(z_plane.real, z_plane.imag)
     # plt.plot(v_plane.real, v_plane.imag)
     # plt.plot(u_plane.real, u_plane.imag)
