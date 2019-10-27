@@ -115,10 +115,10 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.001
+time_step = 0.005
 # " if the time step > 0.001, sudden variation of vortex position"
 current_time = 0.00
-iteration = 1000
+iteration = 500
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
@@ -192,7 +192,7 @@ for iterate in range(iteration):
     te_u = np.tile(te_vortex_u, (len(Gkn), 1))
 
     dudv = 1 / radius
-    dzdv = sum(1 - Gkn_coeff * power_coeff / radius * te_u ** (power_coeff + 1))
+    dzdv = sum(1 - Gkn_coeff * power_coeff / radius / te_u ** (power_coeff + 1))
     dvdz = 1 / dzdv
     dudz = dudv * dvdz
 
@@ -214,24 +214,21 @@ for iterate in range(iteration):
     p = d1 + d2
     if len(te_vortex_u) > 1:
         # complex potential for shed vortices
-        Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
-        power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
-        te_u = np.tile(te_vortex_u, (len(Gkn), 1))
         te_uu = diag_remove(te_vortex_u)  # square matrix of te_vortex_u, remove diagonal and transpose
 
         temp_1 = (te_vortex_u * radius + center_circle) + sum(Gkn_coeff / te_u ** power_coeff)
         temp_1 = np.tile(temp_1, (len(te_vortex_u) - 1, 1))
         p1 = sum(temp_1 - te_uu)
 
-        temp_1 = (radius / te_vortex_u) + sum(
-            Gkn_coeff * (te_u * radius / (radius - te_u * center_circle)) ** power_coeff)
+        temp_1 = (radius / te_vortex_u) + \
+                 sum(Gkn_coeff * (te_u * radius / (radius - te_u * center_circle)) ** power_coeff)
         temp_1 = np.tile(temp_1, (len(te_vortex_u) - 1, 1))
         p2 = sum(temp_1 - te_uu)
 
         p3 = radius - sum(power_coeff * Gkn_coeff / te_u ** (power_coeff + 1))
         p4 = -radius / te_vortex_u ** 2 + \
-             sum(Gkn_coeff * power_coeff * te_vortex_u ** (power_coeff - 1) * (
-                         radius / (radius - te_u * center_circle)) ** (power_coeff + 1))
+             sum(Gkn_coeff * power_coeff * te_vortex_u ** (power_coeff - 1) *
+                 (radius / (radius - te_u * center_circle)) ** (power_coeff + 1))
         d3 = 1j * te_vortex_strength / (2 * np.pi) * (p4 / p2 - p3 / p1)
 
         p += d3
