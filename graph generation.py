@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_file = open('result_file.txt', 'r')
+data_file = open('result_file_NACA2412.txt', 'r')
 data_line = data_file.readlines()
 aoa = float(data_line[5][:-1])
 aoa = np.exp(-1j * aoa)
@@ -9,7 +9,7 @@ aoa = np.exp(-1j * aoa)
 file2_name = data_line[1][:-1] + '_data.txt'
 airfoil_file = open(file2_name, 'r')
 airfoil_line = airfoil_file.readlines()
-airfoil_coordinate = airfoil_line[11][:-3].replace('i', 'j').split(' ')
+airfoil_coordinate = airfoil_line[13][:-3].replace('i', 'j').split(' ')
 airfoil_coordinate = np.array([complex(index) for index in airfoil_coordinate])
 airfoil_coordinate = airfoil_coordinate * aoa
 
