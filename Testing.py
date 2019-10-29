@@ -12,22 +12,26 @@ def diag_remove(p):
 
 
 def calculate_derivative(point):  # calculate derivative of a single point
-    dudv = 1 / radius
-    dzdv = 1 - sum(Gkn * power / (radius * point ** (power + 1)))
-    dvdz = 1 / dzdv
+    dudv = 1.0 / radius
+    dzdv = 1.0 - sum(Gkn * power / (radius * point ** (power + 1)))
+    dvdz = 1.0 / dzdv
     dudz = dudv * dvdz
-    d2zdv2 = sum(Gkn * power * (power + 1) / ((radius ** 2) * (point ** (power + 2))))
-    d2udz2 = - dudv * d2zdv2 / dzdv ** 3
+    d2zdv2 = sum(Gkn * power * (power + 1.0) / ((radius ** 2.0) * (point ** (power + 2.0))))
+    d2udz2 = - dudv * d2zdv2 / dzdv ** 3.0
     return dudz, d2udz2
 
 
-def calculate_d4(point, point_aff):  # calculate vortex induced velocity
-    p1 = (point * radius + center_circle) + sum(Gkn / point ** 2) - point_aff
+def calculate_d4(point, point_aff, v_strength):  # calculate vortex induced velocity
+    p1 = (point * radius + center_circle) + sum(Gkn / point ** power) - point_aff
     p2 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point_aff
-    p3 = radius - sum(power * Gkn / point ** (power + 1))
-    p4 = -radius / point ** 2 + sum(
-        Gkn * power * point ** (power - 1) * (radius / (radius - point * center_circle)) ** (power + 1))
-    d4 = vortex_strength_2 * 1j / (np.pi * 2) * (p4 / p2 - p3 / p1)
+    p3 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point
+
+    p11 = radius - sum(power * Gkn / point ** (power + 1.0))
+    p22 = -radius / point ** 2.0 + \
+         sum(Gkn * power * point ** (power - 1) * (radius / (radius - point * center_circle)) ** (power + 1))
+    p33 = p22
+
+    d4 = v_strength * 1j / (np.pi * 2) * (p22 / p2 + p33 / p3 - p11 / p1)
     return d4
 
 
@@ -52,39 +56,38 @@ power = np.arange(1, len(Gkn) + 1, dtype='float')
 radius = 0.27546
 center_circle = 0.48333 + 0.01141j
 
-vortex_strength_1 = 2
-vortex_strength_2 = 4
-vortex_center_1 = 300
-vortex_center_2 = 400
+vortex_strength_1 = 50
+vortex_strength_2 = 30
+vortex_center_1 = 3050 + 5j
+vortex_center_2 = 3050 - 5j
 
+# volocities in z plane - calulate in u plane
 point = vortex_center_1
 point_aff = vortex_center_2
 d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / point ** 2)
-d4 = calculate_d4(point, point_aff)
+dudz, d2udz2 = calculate_derivative(point)
+
+p1 = (point * radius + center_circle) + sum(Gkn / point ** power) - point_aff
+p2 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point_aff
+p3 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point
+p11 = radius - sum(power * Gkn / point ** (power + 1.0))
+p22 = -radius / point ** 2.0 + \
+      sum(Gkn * power * point ** (power - 1) * (radius / (radius - point * center_circle)) ** (power + 1))
+p33 = p22
+
+d4 = 1j * vortex_strength_2 * (p22/p2 - p11/p1) / (2 * np.pi) + 1j * vortex_strength_1 * (p33/p3) / (2 * np.pi)
 p = d4
 
-dudz, d2udz2 = calculate_derivative(point)
 vel_1 = np.conjugate(p*dudz - 1j*vortex_strength_1 / (4*np.pi) * d2udz2/dudz)
-# vel_1 = d1 * dudz
-print(vel_1)
+print('veolcity vortex1 - uplane ', vel_1)
 
-point = vortex_center_2
-point_aff = vortex_center_1
-d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / point ** 2)
-d4 = calculate_d4(point, point_aff)
-p = d4
-
-dudz, d2udz2 = calculate_derivative(point)
-vel_2 = np.conjugate(p*dudz - 1j*vortex_strength_2 / (4*np.pi) * d2udz2/dudz)
-# vel_2 = d1 * dudz
-print(vel_2)
-
+# velocities in z plane - calculate in z plane
 vortex_center_1_v = vortex_center_1 * radius + center_circle
 vortex_center_2_v = vortex_center_2 * radius + center_circle
 vortex_center_1_z = vortex_center_1_v + sum(Gkn * (radius / (vortex_center_1_v - center_circle)) ** power)
 vortex_center_2_z = vortex_center_2_v + sum(Gkn * (radius / (vortex_center_2_v - center_circle)) ** power)
 
 vel_1_z = - 1j*vortex_strength_2 / (2 * np.pi) / (vortex_center_1_z - vortex_center_2_z)
-print(vel_1_z)
+print('veolcity vortex1 - zplane ', vel_1_z)
 vel_2_z = - 1j*vortex_strength_1 / (2 * np.pi) / (vortex_center_2_z - vortex_center_1_z)
-print(vel_2_z)
+print('veolcity vortex2 - zplane ', vel_2_z)
