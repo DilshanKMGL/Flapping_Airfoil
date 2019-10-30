@@ -12,12 +12,10 @@ def diag_remove(p):
 
 
 def calculate_derivative(point):  # calculate derivative of a single point
-    dudv = 1.0 / radius
-    dzdv = 1.0 - sum(Gkn * power / (radius * point ** (power + 1)))
-    dvdz = 1.0 / dzdv
-    dudz = dudv * dvdz
-    d2zdv2 = sum(Gkn * power * (power + 1.0) / ((radius ** 2.0) * (point ** (power + 2.0))))
-    d2udz2 = - dudv * d2zdv2 / dzdv ** 3.0
+    dzdu = radius - sum(power*Gkn/point**(power+1))
+    d2zdu2 = sum(power*(power+1)/point**(power+2))
+    dudz = 1/dzdu
+    d2udz2 = -d2zdu2/dzdu**3
     return dudz, d2udz2
 
 
@@ -68,16 +66,14 @@ d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / point ** 2)
 dudz, d2udz2 = calculate_derivative(point)
 
 p1 = (point * radius + center_circle) + sum(Gkn / point ** power) - point_aff
-p2 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point_aff
-p3 = radius / point + sum(Gkn * (point * radius / (radius - point * center_circle)) ** power) - point
 p11 = radius - sum(power * Gkn / point ** (power + 1.0))
-p22 = -radius / point ** 2.0 + \
-      sum(Gkn * power * point ** (power - 1) * (radius / (radius - point * center_circle)) ** (power + 1))
+p2 = (radius / point) + center_circle + sum(Gkn * point ** power) - np.conjugate(point_aff)
+p22 = -radius / point ** 2.0 + sum(Gkn * power * point ** (power - 1))
+p3 = (radius / point) + center_circle + sum(Gkn * point ** power) - np.conjugate(point)
 p33 = p22
 
-d4 = 1j * vortex_strength_2 * (p22/p2 - p11/p1) / (2 * np.pi) + 1j * vortex_strength_1 * (p33/p3) / (2 * np.pi)
+d4 = 1j / (2 * np.pi) * vortex_strength_2 * (p22/p2 - p11/p1) + 1j / (2 * np.pi) * vortex_strength_1 * (p33/p3)
 p = d4
-
 vel_1 = np.conjugate(p*dudz - 1j*vortex_strength_1 / (4*np.pi) * d2udz2/dudz)
 print('veolcity vortex1 - uplane ', vel_1)
 
@@ -87,7 +83,10 @@ vortex_center_2_v = vortex_center_2 * radius + center_circle
 vortex_center_1_z = vortex_center_1_v + sum(Gkn * (radius / (vortex_center_1_v - center_circle)) ** power)
 vortex_center_2_z = vortex_center_2_v + sum(Gkn * (radius / (vortex_center_2_v - center_circle)) ** power)
 
+# only 2 vortices
 vel_1_z = - 1j*vortex_strength_2 / (2 * np.pi) / (vortex_center_1_z - vortex_center_2_z)
 print('veolcity vortex1 - zplane ', vel_1_z)
-vel_2_z = - 1j*vortex_strength_1 / (2 * np.pi) / (vortex_center_2_z - vortex_center_1_z)
-print('veolcity vortex2 - zplane ', vel_2_z)
+
+# one vortex + free stream
+# vel_1_z = velocity
+# print('veolcity vortex1 - zplane ', vel_1_z)
