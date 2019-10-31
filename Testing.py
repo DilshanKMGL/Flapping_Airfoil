@@ -33,43 +33,78 @@ def calculate_d4(point, point_aff, v_strength):  # calculate vortex induced velo
     return d4
 
 
-velocity = 10
-aoa = 0
-Gkn = np.array([0.22191 - 0.0014299j, 0.015057 - 0.0087489j, 0.0014982 - 0.00011215j, 0.00090373 - 0.00024252j,
-                0.00043968 - 0.00029267j, 0.00030882 - 1.42e-05j, 0.00014553 - 2.4458e-05j, 0.00013449 - 5.7484e-05j,
-                6.2759e-05 - 4.8699e-05j, 6.4421e-05 + 3.4589e-06j, 3.8072e-05 - 1.8774e-05j, 3.7293e-05 - 2.0058e-05j,
-                2.1524e-05 - 1.3357e-05j, 2.2883e-05 + 3.4335e-07j, 1.5773e-05 - 1.1712e-05j, 1.4867e-05 - 8.2966e-06j,
-                1.0312e-05 - 4.6961e-06j, 1.0592e-05 - 1.2576e-06j, 8.1001e-06 - 7.2054e-06j, 7.3614e-06 - 3.57e-06j,
-                6.0316e-06 - 2.1841e-06j, 5.8593e-06 - 1.7983e-06j, 4.7887e-06 - 4.2143e-06j, 4.2513e-06 - 1.6065e-06j,
-                3.8882e-06 - 1.319e-06j, 3.7131e-06 - 1.7341e-06j, 3.0863e-06 - 2.4206e-06j, 2.9155e-06 - 8.1604e-07j,
-                2.6536e-06 - 1.0478e-06j, 2.6585e-06 - 1.3842e-06j, 2.1356e-06 - 1.3556e-06j, 2.1907e-06 - 5.5524e-07j,
-                1.9991e-06 - 9.2462e-07j, 2.0653e-06 - 1.0256e-06j, 1.5499e-06 - 8.6178e-07j, 1.8207e-06 - 4.319e-07j,
-                1.4895e-06 - 8.5323e-07j, 1.6596e-06 - 7.0904e-07j, 1.1445e-06 - 4.9074e-07j, 1.517e-06 - 5.0824e-07j,
-                1.2971e-06 - 6.2508e-07j, 1.2989e-06 - 5.4237e-07j, 9.8841e-07 - 4.3777e-07j, 1.4495e-06 - 6.7442e-07j,
-                1.0236e-06 - 2.3024e-07j, 1.0254e-06 - 7.7694e-07j, 1.2409e-06 - 1.9772e-07j, 9.0645e-07 - 5.8776e-07j,
-                1.0258e-06 - 3.9214e-07j, 1.0181e-06 - 4.785e-07j])
+Gkn = np.array([0.22191364662 - 0.00142990992j,
+                0.01505722598 - 0.00874889365j,
+                0.00149823803 - 0.00011215076j,
+                0.00090373148 - 0.00024251526j,
+                0.00043968377 - 0.00029267360j,
+                0.00030882255 - 0.00001419958j,
+                0.00014553022 - 0.00002445814j,
+                0.00013448707 - 0.00005748407j,
+                0.00006275852 - 0.00004869871j,
+                0.00006442110 + 0.00000345894j,
+                0.00003807247 - 0.00001877369j,
+                0.00003729343 - 0.00002005799j,
+                0.00002152385 - 0.00001335710j,
+                0.00002288283 + 0.00000034335j,
+                0.00001577258 - 0.00001171182j,
+                0.00001486676 - 0.00000829661j,
+                0.00001031177 - 0.00000469612j,
+                0.00001059233 - 0.00000125761j,
+                0.00000810013 - 0.00000720538j,
+                0.00000736145 - 0.00000356997j,
+                0.00000603161 - 0.00000218410j,
+                0.00000585932 - 0.00000179831j,
+                0.00000478871 - 0.00000421427j,
+                0.00000425127 - 0.00000160646j,
+                0.00000388823 - 0.00000131899j,
+                0.00000371313 - 0.00000173414j,
+                0.00000308634 - 0.00000242062j,
+                0.00000291552 - 0.00000081604j,
+                0.00000265362 - 0.00000104776j,
+                0.00000265852 - 0.00000138416j,
+                0.00000213562 - 0.00000135560j,
+                0.00000219070 - 0.00000055524j,
+                0.00000199909 - 0.00000092462j,
+                0.00000206529 - 0.00000102563j,
+                0.00000154990 - 0.00000086178j,
+                0.00000182070 - 0.00000043190j,
+                0.00000148947 - 0.00000085323j,
+                0.00000165956 - 0.00000070904j,
+                0.00000114451 - 0.00000049074j,
+                0.00000151699 - 0.00000050824j,
+                0.00000129712 - 0.00000062508j,
+                0.00000129890 - 0.00000054237j,
+                0.00000098841 - 0.00000043777j,
+                0.00000144950 - 0.00000067442j,
+                0.00000102357 - 0.00000023024j,
+                0.00000102544 - 0.00000077694j,
+                0.00000124092 - 0.00000019772j,
+                0.00000090645 - 0.00000058776j,
+                0.00000102579 - 0.00000039214j,
+                0.00000101806 - 0.00000047850j])
 power = np.arange(1, len(Gkn) + 1, dtype='float')
 radius = 0.27546
-center_circle = 0.48333 + 0.01141j
+center_circle = 0.483329 + 0.011410j
+velocity = 0
+aoa = 0
 
-vortex_strength_1 = 50
-vortex_strength_2 = 30
-vortex_center_1 = 30500 + 5j
-vortex_center_2 = 30500 - 5j
+vortex_strength_1 = 10
+vortex_strength_2 = 10
+vortex_center_1 = 3000
+vortex_center_2 = 3050
 
 # free stream
 d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / vortex_center_1 ** 2)
-# volocities in z plane - calulate in u plane
-# from vortex 2 into vortex 1
-p1 = (vortex_center_1 * radius + center_circle) + sum(Gkn / vortex_center_1 ** power) - vortex_center_2
-p2 = radius / vortex_center_1 + np.conj(center_circle) + sum(Gkn * vortex_center_1 ** power) - np.conj(vortex_center_2)
-dp1du = radius - sum(Gkn * power / vortex_center_1 ** (power + 1))
-dp2du = -radius / vortex_center_1 ** 2 + sum(Gkn * power * vortex_center_1 ** (power - 1))
-dwdu2 = 1j * vortex_center_2 / (2 * np.pi) * (dp2du / p2 - dp1du / p1)
 
-# from image of the vortex 1
-p2 = radius / vortex_center_1 + center_circle + sum(Gkn * vortex_center_1 ** power) - np.conj(vortex_center_1)
-dwdu1 = 1j * vortex_center_1 / (2 * np.pi) * (dp2du / p2)
+# in general method that was wrong before
+p1 = 1 / (vortex_center_1 - vortex_center_2)
+p2 = 1 / vortex_center_1 / (1 - vortex_center_1 * np.conj(vortex_center_2))
+p = -1j * vortex_strength_2 / (2 * np.pi) * (p1 + p2)
+
+p2 = 1 / vortex_center_1 / (1 - vortex_center_1 * np.conj(vortex_center_1))
+p += -1j * vortex_strength_1 / (2 * np.pi) * p2
+p += d1
 
 # derivatives
 dzdu = radius - sum(Gkn * power / vortex_center_1 ** (power + 1))
@@ -77,10 +112,25 @@ d2zdu2 = sum(Gkn * power * (power + 1) / vortex_center_1 ** (power + 2))
 dudz = 1 / dzdu
 d2udz2 = - d2zdu2 / dzdu ** 3
 
-p = d1 + dwdu1 + dwdu2
-
 vel_1 = np.conjugate(p * dudz - 1j * vortex_strength_1 / (4 * np.pi) * d2udz2 / dudz)
 print('veolcity vortex1 - uplane ', vel_1)
+
+p1 = 1 / (vortex_center_2 - vortex_center_1)
+p2 = 1 / vortex_center_2 / (1 - vortex_center_2 * np.conj(vortex_center_1))
+p = -1j * vortex_strength_1 / (2 * np.pi) * (p1 + p2)
+
+p2 = 1 / vortex_center_2 / (1 - vortex_center_2 * np.conj(vortex_center_2))
+p += -1j * vortex_strength_2 / (2 * np.pi) * p2
+p += d1
+
+# derivatives
+dzdu = radius - sum(Gkn * power / vortex_center_2 ** (power + 1))
+d2zdu2 = sum(Gkn * power * (power + 1) / vortex_center_2 ** (power + 2))
+dudz = 1 / dzdu
+d2udz2 = - d2zdu2 / dzdu ** 3
+
+vel_1 = np.conjugate(p * dudz - 1j * vortex_strength_2 / (4 * np.pi) * d2udz2 / dudz)
+print('veolcity vortex2 - uplane ', vel_1)
 
 # velocities in z plane - calculate in z plane
 vortex_center_1_v = vortex_center_1 * radius + center_circle
@@ -89,7 +139,7 @@ vortex_center_1_z = vortex_center_1_v + sum(Gkn * (radius / (vortex_center_1_v -
 vortex_center_2_z = vortex_center_2_v + sum(Gkn * (radius / (vortex_center_2_v - center_circle)) ** power)
 
 # only 2 vortices
-vel_1_z = - 1j * vortex_strength_2 / (2 * np.pi) / (vortex_center_1_z - vortex_center_2_z)
-vel_2_z = - 1j * vortex_strength_1 / (2 * np.pi) / (vortex_center_2_z - vortex_center_1_z)
+vel_1_z = np.conj(velocity - 1j * vortex_strength_2 / (2 * np.pi) / (vortex_center_1_z - vortex_center_2_z))
+vel_2_z = np.conj(velocity - 1j * vortex_strength_1 / (2 * np.pi) / (vortex_center_2_z - vortex_center_1_z))
 print('veolcity vortex1 - zplane ', vel_1_z)
 print('veolcity vortex2 - zplane ', vel_2_z)
