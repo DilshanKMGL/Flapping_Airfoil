@@ -1,12 +1,13 @@
 import numpy as np
 import time
 
-airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
+# airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
+#                 '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
+#                 '6409', '6412']
+
+airfoil_list = ['0006', '1410', '1412', '2408',
                 '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
                 '6409', '6412']
-
-import numpy as np
-import time
 
 
 def read_data(heading):
@@ -101,7 +102,7 @@ for airfoil_name in airfoil_list:
     start = time.time()
     iterate_time = start
     # ------ airfoil data
-    airfoil = 'NACA'+airfoil_name
+    airfoil = 'NACA' + airfoil_name
     N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
     re_num = 1e6
@@ -153,7 +154,8 @@ for airfoil_name in airfoil_list:
         new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
         new_vortex_position_z = complex(new_vortex_position_z)
         search_point = center_circle + radius
-        new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
+        new_vortex_position_v = complex(
+            newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
         new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
 
         # ------ create function to calculate circulation
