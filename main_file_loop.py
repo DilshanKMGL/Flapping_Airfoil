@@ -101,7 +101,7 @@ density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
 free_aoa = 10.0
-free_aoa = np.deg2rad(free_aoa)
+free_aoa = np.deg2rad(-free_aoa)
 # ------ plunging parameters
 pl_amplitude = 0
 pl_frequency = 0
@@ -122,7 +122,7 @@ iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.005
 current_time = 0.00
-iteration = 1000
+iteration = 500
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
@@ -140,8 +140,6 @@ for iterate in range(iteration):
     # --- calculate velocity
     velocity = free_velocity
     aoa = free_aoa
-    # print(velocity)
-    # print(aoa)
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)

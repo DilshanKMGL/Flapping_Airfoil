@@ -4,7 +4,7 @@ import numpy as np
 data_file = open('Transient_solution_results/result_file_NACA2412.txt', 'r')
 data_line = data_file.readlines()
 aoa = float(data_line[5][:-1])
-aoa = np.exp(-1j * aoa)
+aoa = np.exp(1j * aoa)
 
 file2_name = data_line[1][:-1] + '_data.txt'
 airfoil_file = open(file2_name, 'r')

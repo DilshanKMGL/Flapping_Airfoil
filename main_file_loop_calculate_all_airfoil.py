@@ -1,6 +1,13 @@
 import numpy as np
 import time
 
+airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
+                '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
+                '6409', '6412']
+
+import numpy as np
+import time
+
 
 def read_data(heading):
     heading = 'Airfoil_data/' + str(heading) + '_data.txt'
@@ -11,17 +18,18 @@ def read_data(heading):
     r = float(line[3])
     center_circle = complex(line[5].replace('i', 'j'))
     trailing_edge_z = complex(line[7].replace('i', 'j'))
-    Gkn = [complex(index.replace('i', 'j')) for index in line[9][:len(line[9]) - 3].split(' ')]
-    z_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[11][:len(line[11]) - 3].split(' ')])
-    v_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[13][:len(line[13]) - 3].split(' ')])
+    trailing_edge_v = complex(line[9].replace('i', 'j'))
+    Gkn = np.asarray([complex(index.replace('i', 'j')) for index in line[11][:len(line[11]) - 3].split(' ')])
+    z_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[13][:len(line[13]) - 3].split(' ')])
+    v_plane = np.asarray([complex(index.replace('i', 'j')) for index in line[15][:len(line[15]) - 3].split(' ')])
     u_plane = np.subtract(v_plane, center_circle) / r
 
-    return N, r, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane
+    return N, r, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane
 
 
 def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+              time_step, current_time, iteration, distance, angle, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
@@ -40,14 +48,14 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
     file1.close()
 
 
-def update_file(te_vortex_z, iteration):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def update_file(te_vortex_z, iteration, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
-def write_array(circulation, te_vortex_strength, iterate_time_step):
-    heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
+    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('circulation\n' + str(list(circulation)) + '\n')
     file1.write('te_vortex_strength\n' + str(list(te_vortex_strength)) + '\n')
@@ -73,23 +81,35 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
     return None
 
 
-airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
-                '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
-                '6409', '6412']
+# remove diagonal element from array and traspose the result
+def diag_remove(p):
+    """
+    make square matrix from the given array and remove diagonal elements
+    :param p: array
+    :return: nd array
+    """
+    strided = np.lib.stride_tricks.as_strided
 
-for airfoil_number in airfoil_list:
+    p = np.tile(p, (len(p), 1))
+    m = p.shape[0]
+    s0, s1 = p.strides
+    p = strided(p.ravel()[1:], shape=(m - 1, m), strides=(s0 + s1, s1)).reshape(m, -1)
+    return p
+
+
+for airfoil_name in airfoil_list:
     start = time.time()
     iterate_time = start
     # ------ airfoil data
-    airfoil = 'NACA' + airfoil_number
-    N, radius, center_circle, trailing_edge_z, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
+    airfoil = 'NACA'+airfoil_name
+    N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
-    re_num = 10e5
+    re_num = 1e6
     density = 1.225
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
     free_aoa = 0.0
-    free_aoa = np.deg2rad(free_aoa)
+    free_aoa = np.deg2rad(-free_aoa)
     # ------ plunging parameters
     pl_amplitude = 0
     pl_frequency = 0
@@ -108,128 +128,115 @@ for airfoil_number in airfoil_list:
     te_vortex_u = np.array([])
     iterate_time_step = np.array([])
     # ------ time step
-    time_step = 0.01
-    # " if the time step > 0.001, sudden variation of vortex position"
+    time_step = 0.005
     current_time = 0.00
     iteration = 1000
 
+    heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     # ----- write in a file
     make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle)
-
+              time_step, current_time, iteration, distance, angle, heading_file)
     print(airfoil)
     # ------ iteration code
     for iterate in range(iteration):
-        # print(airfoil + ' Iteration - ' + str(iterate + 1))
+        if iterate % 100 == 0:
+            print('Iteration - ' + str(iterate))
 
         # ------ calculate trailing edge position
-
-        search_point = center_circle + radius
-        trailing_edge_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, trailing_edge_z))
         trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
         # --- calculate velocity
         velocity = free_velocity
         aoa = free_aoa
-        # print(velocity)
-        # print(aoa)
 
         # ------ calculate new vortex position
         new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
         new_vortex_position_z = complex(new_vortex_position_z)
         search_point = center_circle + radius
-        new_vortex_position_v = complex(
-            newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
+        new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
         new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
+
+        # ------ create function to calculate circulation
+        s = sum(te_vortex_strength)
+        # velocity calculation
+        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+        # circulation
+        d2 = -1j / (2 * np.pi * trailing_edge_u)
+        # newly sheded vortex
+        p1 = 1.0 / (trailing_edge_u - new_vortex_position_u)
+        p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_u)))
+        d3 = -1j / (2 * np.pi) * (p1 + p2)
+
+        # previously shed vortices
+        p1 = 1.0 / (trailing_edge_u - te_vortex_u)
+        p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(te_vortex_u)))
+        d4 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d4 = sum(d4)
+
+        circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
+
+        circulation_list = np.append(circulation_list, [circulation])
+        te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
         te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
         te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
         te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
-        # ------ create function to calculate circulation
-        s = sum(te_vortex_strength)
-        d1 = -1j / (2 * np.pi * trailing_edge_u)
-        d2 = 1j * ((1 / (trailing_edge_u - new_vortex_position_u)) +
-                   (1 / (trailing_edge_u * (1 - trailing_edge_u * new_vortex_position_u)))) / (2 * np.pi)
-        d3 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (trailing_edge_u ** 2)))
-
-        d4 = - 1j * te_vortex_strength * ((1 / (trailing_edge_u - te_vortex_u[:-1])) +
-                                          (1 / (trailing_edge_u * (1 - trailing_edge_u * te_vortex_u[:-1])))) / (
-                         2 * np.pi)
-        d4 = sum(d4)
-        circulation = complex((- (s * d2 + d3 + d4) / (d1 + d2))).real
-        circulation_list = np.append(circulation_list, [circulation])
-        te_vortex_strength = np.append(te_vortex_strength, [-s - circulation])
-
         # - calculate derivative
-        # te_vortex_v = te_vortex_u * radius + center_circle
-        svc = te_vortex_v - center_circle
-        svc = np.array(list(svc) * len(Gkn))
-        svc = svc.reshape(len(Gkn), len(te_vortex_u))
-        svc = np.transpose(svc)
-
-        Gkncoeff = np.array(list(Gkn) * len(te_vortex_v))
-        Gkncoeff = Gkncoeff.reshape(len(te_vortex_u), len(Gkn))
 
         power = np.arange(1, len(Gkn) + 1)
-        power = np.array(list(power) * len(te_vortex_u))
-        power = power.reshape(len(te_vortex_u), len(Gkn))
+        Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
+        power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
+        te_coeff = np.tile(te_vortex_u, (len(Gkn), 1))
 
-        dzdv = 1 - Gkncoeff * power * radius ** power / svc ** (power + 1)
-        d2zdv2 = power * (power + 1) * Gkncoeff * radius ** power / svc ** (power + 2)
-        dvdu = radius
-        dudz = 1 / (dvdu * dzdv)
-        d2udz2 = - d2zdv2 / dzdv ** 3
+        dudv = 1 / radius
+        dzdv = 1.0 - sum(Gkn_coeff * power_coeff / radius / te_coeff ** (power_coeff + 1))
+        dvdz = 1 / dzdv
+        dudz = dudv * dvdz
+
+        d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_coeff ** (power_coeff + 2))
+        d2udz2 = - dudv * d2zdv2 / dzdv ** 3
 
         # ------ iterate time
         iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
-        update_file(te_vortex_z, iterate)
+        update_file(te_vortex_z, iterate, heading_file)
 
-        # ------ move vortices
-        p1 = -1j * circulation / te_vortex_u / (2 * np.pi)
-        p2 = velocity * ((1 / pow(np.e, 1j * aoa)) - (pow(np.e, 1j * aoa) / (te_vortex_u ** 2)))
+        # ------------------------------------- #
+        #           move vortices               #
+        # ------------------------------------- #
+        # velocity
+        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
+        # circulation
+        d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 
-        u = te_vortex_u.copy()
-        u = np.array(list(u) * len(u))
-        u = u.reshape(len(te_vortex_u), len(te_vortex_u))
-        strided = np.lib.stride_tricks.as_strided
-        s0, s1 = u.strides
-        u = strided(u.ravel()[1:], shape=(len(u) - 1, len(u)), strides=(s0 + s1, s1)).reshape(len(u), -1)
+        p = d1 + d2
+        if len(te_vortex_u) > 1:
+            te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+            te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+            te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
+            d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-        vc = te_vortex_u.copy()
-        vc = np.array(list(vc) * (len(vc) - 1))
-        vc = vc.reshape(len(te_vortex_u) - 1, len(te_vortex_u))
-        vc = np.transpose(vc)
+            # te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+            # te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+            # te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+            te_uu = np.conjugate(te_uu)
+            d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
-        vs = np.transpose(te_vortex_strength).copy()
-        vs = np.array(list(vs) * (len(vs) - 1))
-        vs = vs.reshape(len(te_vortex_strength) - 1, len(te_vortex_strength))
-        vs = np.transpose(vs)
+            p += d3 + d4
 
-        p = p1 + p2
-        if len(u) > 1:
-            p3 = - 1j * vs * ((1 / (u - vc)) + (1 / (u * (1 - u * vc)))) / (2 * np.pi)
-            p3 = sum(np.transpose(p3))
-            p += p3
+        # ------------------------------------------------- #
+        #            move vortices                          #
+        # ------------------------------------------------- #
 
-        p = np.array(list(p) * len(Gkn))
-        p = p.reshape(len(Gkn), len(te_vortex_u))
-        p = np.transpose(p)
-
-        te_vortex = np.array(list(te_vortex_u) * len(Gkn))
-        te_vortex = te_vortex.reshape(len(Gkn), len(te_vortex_u))
-        te_vortex = np.transpose(te_vortex)
-
-        vel_conj = p * dudz - 1j * te_vortex * d2udz2 / dudz / (4 * np.pi)
-        vel_conj = sum(np.transpose(vel_conj))
+        vel_conj = p * dudz - 1j * te_vortex_strength * d2udz2 / dudz / (4 * np.pi)
         te_vortex_vel = np.conj(vel_conj)
         te_vortex_z = te_vortex_z + te_vortex_vel * time_step
 
-        te_vortex_v = [newton(te_vortex_v[index], 1e-8, 50, Gkn, radius, center_circle, te_vortex_z[index])
+        te_vortex_v = [newton(te_vortex_v[index], 1e-8, 250, Gkn, radius, center_circle, te_vortex_z[index])
                        for index in range(len(te_vortex_z))]
         te_vortex_v = np.array(te_vortex_v)
         te_vortex_u = (te_vortex_v - center_circle) / radius
 
         current_time += time_step
 
-    write_array(circulation_list, te_vortex_strength, iterate_time_step)
+    write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
     print('total time ', time.time() - start)
