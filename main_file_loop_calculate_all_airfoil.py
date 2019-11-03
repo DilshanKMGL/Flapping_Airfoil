@@ -131,7 +131,7 @@ for airfoil_name in airfoil_list:
     # ------ time step
     time_step = 0.005
     current_time = 0.00
-    iteration = 1000
+    iteration = 100
 
     heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     # ----- write in a file
