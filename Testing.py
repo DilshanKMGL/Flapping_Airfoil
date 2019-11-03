@@ -91,7 +91,7 @@ aoa = 0
 
 vortex_strength_1 = 10
 vortex_strength_2 = 10
-vortex_center_1 = 3000
+vortex_center_1 = 3030
 vortex_center_2 = 3050
 
 # free stream
