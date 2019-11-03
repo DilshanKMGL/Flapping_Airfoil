@@ -76,12 +76,17 @@ def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
 
 # remove diagonal element from array and traspose the result
 def diag_remove(p):
+    """
+    make square matrix from the given array and remove diagonal elements
+    :param p: array
+    :return: nd array
+    """
     strided = np.lib.stride_tricks.as_strided
 
     p = np.tile(p, (len(p), 1))
     m = p.shape[0]
     s0, s1 = p.strides
-    p = strided(p.ravel()[1:], shape=(m - 1, m), strides=(s0 + s1, s1)).reshape(m, -1).transpose()
+    p = strided(p.ravel()[1:], shape=(m - 1, m), strides=(s0 + s1, s1)).reshape(m, -1)
     return p
 
 
@@ -115,9 +120,9 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.001
+time_step = 0.01
 current_time = 0.00
-iteration = 1000
+iteration = 100
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
@@ -169,22 +174,19 @@ for iterate in range(iteration):
     te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
     te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
-    # ----------------------------- #
-    #       should be revised       #
-    # ----------------------------- #
     # - calculate derivative
 
     power = np.arange(1, len(Gkn) + 1)
     Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
     power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
-    te_u = np.tile(te_vortex_u, (len(Gkn), 1))
+    te_coeff = np.tile(te_vortex_u, (len(Gkn), 1))
 
     dudv = 1 / radius
-    dzdv = 1 - sum(Gkn_coeff * power_coeff / radius / te_u ** (power_coeff + 1))
+    dzdv = 1.0 - sum(Gkn_coeff * power_coeff / radius / te_coeff ** (power_coeff + 1))
     dvdz = 1 / dzdv
     dudz = dudv * dvdz
 
-    d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_u ** (power_coeff + 2))
+    d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_coeff ** (power_coeff + 2))
     d2udz2 = - dudv * d2zdv2 / dzdv ** 3
 
     # ------ iterate time
@@ -201,29 +203,17 @@ for iterate in range(iteration):
 
     p = d1 + d2
     if len(te_vortex_u) > 1:
-        # complex potential for shed vortices
-        te_uu = diag_remove(te_vortex_u)  # square matrix of te_vortex_u, remove diagonal and transpose
-        te_ss = diag_remove(te_vortex_strength)  # square matrix of te_vortex_strength, remove diagonal and transpose
+        te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+        te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+        te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
+        d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-        temp = (te_vortex_u * radius + center_circle) + sum(Gkn_coeff * te_u ** power_coeff)
-        p1 = np.tile(temp, (len(te_vortex_strength) - 1, 1)) - te_uu
+        te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+        te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+        te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+        d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
-        temp = (radius / te_vortex_u) + sum(
-            Gkn_coeff * (te_u * radius / (radius - te_u * center_circle)) ** power_coeff)
-        p2 = np.tile(temp, (len(te_vortex_strength) - 1, 1)) - te_uu
-
-        temp = radius - sum(Gkn_coeff * power_coeff / te_u ** (power_coeff + 1))
-        p3 = np.tile(temp, (len(te_vortex_strength) - 1, 1))
-
-        temp = (-radius / te_vortex_u ** 2) + \
-               sum(Gkn_coeff * power_coeff * te_u ** (power_coeff - 1) *
-                   (radius / (radius - te_u * center_circle)) ** (power_coeff + 1))
-        p4 = np.tile(temp, (len(te_vortex_strength) - 1, 1))
-
-        p5 = (p4 / p2 - p3 / p1)
-        d3 = sum(1j * te_ss * p5 / (2 * np.pi))
-
-        p += d3
+        p += d3 + d4
 
     # ------------------------------------------------- #
     #            move vortices                          #
