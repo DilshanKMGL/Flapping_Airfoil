@@ -99,8 +99,8 @@ N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plan
 re_num = 1e6
 density = 1.225
 viscosity = 1.789e-5
-free_velocity = 20  # re_num * viscosity / density
-free_aoa = 0.0
+free_velocity = re_num * viscosity / density
+free_aoa = 10.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
 pl_amplitude = 0
@@ -120,9 +120,9 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.01
+time_step = 0.005
 current_time = 0.00
-iteration = 100
+iteration = 1000
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
@@ -131,7 +131,8 @@ make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_ampli
 
 # ------ iteration code
 for iterate in range(iteration):
-    print('Iteration - ' + str(iterate + 1))
+    if iterate % 100 == 0:
+        print('Iteration - ' + str(iterate))
 
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
@@ -208,9 +209,10 @@ for iterate in range(iteration):
         te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
         d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-        te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
-        te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
-        te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+        # te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+        # te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+        # te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+        te_uu = np.conjugate(te_uu)
         d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
         p += d3 + d4

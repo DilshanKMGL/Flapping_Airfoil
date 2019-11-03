@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_file = open('result_file_NACA2412.txt', 'r')
+data_file = open('Transient_solution_results/result_file_NACA2412.txt', 'r')
 data_line = data_file.readlines()
 aoa = float(data_line[5][:-1])
 aoa = np.exp(-1j * aoa)
@@ -25,13 +25,14 @@ pl_frequency = float(data_line[9][:-1])
 current_time = 0.0
 
 for i in range(iteration):
-    print('Iteration: ' + str(i+1))
+    if i % 100 == 0:
+        print('Iteration - ' + str(i))
 
     plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
     plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
     current_time += time_step
     data = data_line[current_iter_line][1:-2].replace(' ', '').split(',')
-    data = np.array([complex(index) for index in data])# * aoa
+    data = np.array([complex(index) for index in data]) * aoa
 
     # plt.xlim(-5, 60)
     # plt.ylim(-20, 20)
@@ -40,11 +41,10 @@ for i in range(iteration):
 
     plt.axis('off')
     plt.grid(False)
-    # plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag+plunging_dis.imag, color='b')
     plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag + plunging_dis.imag, color='b')
     plt.gca().set_aspect('equal', adjustable='box')
     plt.scatter(data.real, data.imag, s=2, color='g')
 
-    plt.savefig(str(i))
+    plt.savefig('Transient_solution_results/' + str(i))
     plt.close()
     current_iter_line += 2
