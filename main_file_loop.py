@@ -151,29 +151,17 @@ for iterate in range(iteration):
     # circulation
     d2 = -1j / (2 * np.pi * trailing_edge_u)
     # newly sheded vortex
-    power = np.arange(1, len(Gkn) + 1)
-    p1 = (trailing_edge_u * radius + center_circle) + \
-         sum(Gkn / trailing_edge_u ** power) - \
-         new_vortex_position_u
-    p2 = radius / trailing_edge_u + \
-         sum(Gkn * (radius * trailing_edge_u / (radius - trailing_edge_u * center_circle)) ** power) - \
-         new_vortex_position_u
-    p3 = radius - sum(Gkn * power / trailing_edge_u ** (power + 1))
-    p4 = - radius / trailing_edge_u ** 2 + \
-         sum(Gkn * power * trailing_edge_u ** (power - 1) *
-             (radius / (radius - trailing_edge_u * center_circle)) ** (power + 1))
-    d3 = -1j / (2 * np.pi) * (p4 / p2 - p3 / p1)
+    p1 = 1.0 / (trailing_edge_u - new_vortex_position_u)
+    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_u)))
+    d3 = -1j / (2 * np.pi) * (p1 + p2)
+
     # previously shed vortices
-    p1 = (trailing_edge_u * radius + center_circle) + \
-         sum(Gkn / trailing_edge_u ** power) - \
-         te_vortex_u
-    p2 = radius / trailing_edge_u + \
-         sum(Gkn * (radius * trailing_edge_u / (radius - trailing_edge_u * center_circle)) ** power) - \
-         te_vortex_u
-    d4 = 1j * te_vortex_strength / (2 * np.pi) * (p4 / p2 - p3 / p1)
+    p1 = 1.0 / (trailing_edge_u - te_vortex_u)
+    p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(te_vortex_u)))
+    d4 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
     d4 = sum(d4)
 
-    circulation = complex(-(d1 + s * d3 + d4) / (d2 + d3)).real
+    circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
 
     circulation_list = np.append(circulation_list, [circulation])
     te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
@@ -186,6 +174,7 @@ for iterate in range(iteration):
     # ----------------------------- #
     # - calculate derivative
 
+    power = np.arange(1, len(Gkn) + 1)
     Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
     power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
     te_u = np.tile(te_vortex_u, (len(Gkn), 1))
