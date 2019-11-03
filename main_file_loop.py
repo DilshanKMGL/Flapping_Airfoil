@@ -100,8 +100,8 @@ re_num = 1e6
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
-free_aoa = 10.0
-free_aoa = np.deg2rad(-free_aoa)
+free_aoa = 0.0
+free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
 pl_amplitude = 0
 pl_frequency = 0
@@ -122,7 +122,7 @@ iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.001
 current_time = 0.00
-iteration = 200
+iteration = 2000
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
