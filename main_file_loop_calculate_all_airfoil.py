@@ -1,13 +1,11 @@
 import numpy as np
 import time
 
-# airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
-#                 '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
-#                 '6409', '6412']
-
-airfoil_list = ['0006', '1410', '1412', '2408',
+airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
                 '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
                 '6409', '6412']
+
+# airfoil_list = ['0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408']
 
 
 def read_data(heading):
@@ -102,7 +100,7 @@ for airfoil_name in airfoil_list:
     start = time.time()
     iterate_time = start
     # ------ airfoil data
-    airfoil = 'NACA' + airfoil_name
+    airfoil = 'NACA'+airfoil_name
     N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
     # ------ free stream velocity
     re_num = 1e6
@@ -110,7 +108,7 @@ for airfoil_name in airfoil_list:
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
     free_aoa = 0.0
-    free_aoa = np.deg2rad(-free_aoa)
+    free_aoa = np.deg2rad(free_aoa)
     # ------ plunging parameters
     pl_amplitude = 0
     pl_frequency = 0
@@ -137,6 +135,7 @@ for airfoil_name in airfoil_list:
     # ----- write in a file
     make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle, heading_file)
+
     print(airfoil)
     # ------ iteration code
     for iterate in range(iteration):
@@ -217,10 +216,9 @@ for airfoil_name in airfoil_list:
             te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
             d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-            # te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
-            # te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
-            # te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-            te_uu = np.conjugate(te_uu)
+            te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+            te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+            te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
             d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
             p += d3 + d4
