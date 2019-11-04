@@ -122,7 +122,7 @@ iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.005
 current_time = 0.00
-iteration = 1000
+iteration = 2000
 
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
@@ -173,6 +173,9 @@ for iterate in range(iteration):
     te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
     te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
+    # calculate stream function
+    # s1 =
+
     # - calculate derivative
 
     power = np.arange(1, len(Gkn) + 1)
@@ -196,7 +199,7 @@ for iterate in range(iteration):
     #           move vortices               #
     # ------------------------------------- #
     # velocity
-    d1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
+    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
     # circulation
     d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 

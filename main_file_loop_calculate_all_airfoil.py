@@ -161,7 +161,7 @@ for airfoil_name in airfoil_list:
         # ------ create function to calculate circulation
         s = sum(te_vortex_strength)
         # velocity calculation
-        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+        d1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
         # circulation
         d2 = -1j / (2 * np.pi * trailing_edge_u)
         # newly sheded vortex
@@ -206,7 +206,7 @@ for airfoil_name in airfoil_list:
         #           move vortices               #
         # ------------------------------------- #
         # velocity
-        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
+        d1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
         # circulation
         d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 
