@@ -3,15 +3,15 @@ from matplotlib import pyplot as plt
 import time
 
 
-def make_file(airfoil, free_velocity, free_aoa, end_aoa, re_num, viscosity, heading):
+def make_file(airfoil, free_velocity, free_aoa, end_aoa, re_num, viscosity, density, heading):
     file1 = open(heading, 'w')
     file1.write('airfoil\n' + str(airfoil) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
     file1.write('free_aoa\n' + str(free_aoa) + '\n')
     file1.write('end_aoa\n' + str(end_aoa) + '\n')
     file1.write('re_num\n' + str(re_num) + '\n')
-    # file1.write('density\n' + str(density) + '\n')
-    file1.write('kinematic_viscosity\n' + str(viscosity) + '\n')
+    file1.write('viscosity\n' + str(viscosity) + '\n')
+    file1.write('density\n' + str(density) + '\n')
     file1.write('angle\tcirculation\n')
     file1.close()
 
@@ -63,23 +63,23 @@ airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', 
                 '6409', '6412']
 
 re_num = 1e6
-# density = 1.225
-kinematic_viscosity = 1.5111e-5
-free_velocity = re_num * kinematic_viscosity  # / density
+density = 1.225
+viscosity = 1.789e-5
+free_velocity = re_num * viscosity / density
 free_aoa = -10.0
 end_aoa = 20.0
 
 # airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412',
 # '2408', '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
 # '6409', '6412']
-airfoil = 'NACA0006'
-re_number_str = '10,' + str((len(str(re_num)) - 3))
+airfoil = 'NACA2412'
+re_number_str = str(re_num)
 heading = 'Steady_state_solution_results/' + airfoil + ' - steady state resuts.txt'
 # 'Steady_state_solution_results/' + airfoil + ' - ' + re_number_str + ' - steady state resuts.txt'
 N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
 
-make_file(airfoil, free_velocity, free_aoa, end_aoa, re_num, kinematic_viscosity, heading)
+make_file(airfoil, free_velocity, free_aoa, end_aoa, re_num, viscosity, density, heading)
 print(airfoil)
 
 for angle in np.arange(free_aoa, end_aoa, 0.1):

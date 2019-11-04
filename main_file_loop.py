@@ -128,7 +128,7 @@ heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
           time_step, current_time, iteration, distance, angle, heading_file)
-
+print(airfoil)
 # ------ iteration code
 for iterate in range(iteration):
     if iterate % 100 == 0:
@@ -151,7 +151,7 @@ for iterate in range(iteration):
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
     # velocity calculation
-    d1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
     # circulation
     d2 = -1j / (2 * np.pi * trailing_edge_u)
     # newly sheded vortex
@@ -196,7 +196,7 @@ for iterate in range(iteration):
     #           move vortices               #
     # ------------------------------------- #
     # velocity
-    d1 = velocity * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
+    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
     # circulation
     d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 
