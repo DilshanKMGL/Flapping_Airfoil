@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_file = open('Transient_solution_results/result_file_NACA2412.txt', 'r')
+airfoil = 2412
+data_file = open('Plunging_solution_results/result_file_NACA' + str(airfoil) + '.txt', 'r')
 data_line = data_file.readlines()
 aoa = float(data_line[5][:-1])
 aoa = np.exp(1j * aoa)
@@ -28,8 +29,8 @@ for i in range(iteration):
     if i % 100 == 0:
         print('Iteration - ' + str(i))
 
-    plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
-    plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
+    # plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+    # plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
     current_time += time_step
     data = data_line[current_iter_line][1:-2].replace(' ', '').split(',')
     data = np.array([complex(index) for index in data]) * aoa
@@ -41,10 +42,10 @@ for i in range(iteration):
 
     plt.axis('off')
     plt.grid(False)
-    plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag + plunging_dis.imag, color='b')
+    plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag, color='b')
     plt.gca().set_aspect('equal', adjustable='box')
     plt.scatter(data.real, data.imag, s=2, color='g')
 
-    plt.savefig('Transient_solution_results/' + str(i))
+    plt.savefig('Plunging_solution_results/' + str(i))
     plt.close()
     current_iter_line += 2
