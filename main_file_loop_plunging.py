@@ -123,7 +123,7 @@ iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.001
 current_time = 0.00
-iteration = 1000
+iteration = 2000
 
 heading_file = 'Plunging_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
