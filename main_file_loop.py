@@ -93,7 +93,8 @@ def diag_remove(p):
 start = time.time()
 iterate_time = start
 # ------ airfoil data
-airfoil = 'NACA2412'
+# 2410 2418
+airfoil = 'NACA2418'
 N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
 re_num = 1e6
