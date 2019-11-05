@@ -35,10 +35,8 @@ for i in range(iteration):
     data = data_line[current_iter_line][1:-2].replace(' ', '').split(',')
     data = np.array([complex(index) for index in data]) * aoa
 
-    # plt.xlim(-5, 60)
-    # plt.ylim(-20, 20)
-    # plt.xlim(-0.1, 5)
-    # plt.ylim(-5, 5)
+    plt.xlim(-1, 20)
+    plt.ylim(-8, 6)
 
     plt.axis('off')
     plt.grid(False)
