@@ -41,10 +41,11 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
     file1.close()
 
 
-def update_file(te_vortex_z, iteration, heading):
+def update_file(te_vortex_z, le_vortex_z, iteration, heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
+    file1.write('le_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(le_vortex_z)) + '\n')
 
 
 def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
@@ -127,8 +128,8 @@ le_vortex_u = np.array([])
 
 # activate several functions
 plunging_on = True
-leading_edge_emmit = False
-leading_edge_velocity_crit = 0.5
+leading_edge_emmit = True
+leading_edge_velocity_crit = 0.06
 
 iterate_time_step = np.array([])
 # ------ time step
@@ -329,33 +330,66 @@ for iterate in range(iteration):
         te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
         te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
 
-    # - calculate derivative
+    # ------------------------------------- #
+    #        update time and file           #
+    # ------------------------------------- #
+    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+    update_file(te_vortex_z, le_vortex_z, iterate, heading_file)
 
+    # - calculate derivative for trailing edge vortices
     power = np.arange(1, len(Gkn) + 1)
-    Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
-    power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
+    Gkn_coeff_te = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
+    power_coeff_te = np.tile(power, (len(te_vortex_u), 1)).transpose()
     te_coeff = np.tile(te_vortex_u, (len(Gkn), 1))
 
-    dudv = 1 / radius
-    dzdv = 1.0 - sum(Gkn_coeff * power_coeff / radius / te_coeff ** (power_coeff + 1))
-    dvdz = 1 / dzdv
-    dudz = dudv * dvdz
+    dudv_te = 1 / radius
+    dzdv_te = 1.0 - sum(Gkn_coeff_te * power_coeff_te / radius / te_coeff ** (power_coeff_te + 1))
+    dvdz_te = 1 / dzdv_te
+    dudz_te = dudv_te * dvdz_te
 
-    d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_coeff ** (power_coeff + 2))
-    d2udz2 = - dudv * d2zdv2 / dzdv ** 3
+    d2zdv2_te = sum(Gkn_coeff_te * power_coeff_te * (power_coeff_te + 1) / radius ** 2 /
+                    te_coeff ** (power_coeff_te + 2))
+    d2udz2_te = - dudv_te * d2zdv2_te / dzdv_te ** 3
 
-    # ------ iterate time
-    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
-    update_file(te_vortex_z, iterate, heading_file)
+    # - calculate derivative for leading edge vortices
+    if len(le_vortex_strength) > 0:
+        power = np.arange(1, len(Gkn) + 1)
+        Gkn_coeff_le = np.tile(Gkn, (len(le_vortex_u), 1)).transpose()
+        power_coeff_le = np.tile(power, (len(le_vortex_u), 1)).transpose()
+        le_coeff = np.tile(le_vortex_u, (len(Gkn), 1))
+
+        dudv_le = 1 / radius
+        dzdv_le = 1.0 - sum(Gkn_coeff_le * power_coeff_le / radius / le_coeff ** (power_coeff_le + 1))
+        dvdz_le = 1 / dzdv_le
+        dudz_le = dudv_le * dvdz_le
+
+        d2zdv2_le = sum(Gkn_coeff_le * power_coeff_le * (power_coeff_le + 1) / radius ** 2 /
+                        le_coeff ** (power_coeff_le + 2))
+        d2udz2_le = - dudv_le * d2zdv2_le / dzdv_le ** 3
+    else:
+        dudz_le = 0
+        d2udz2_le = 0
 
     # ------------------------------------- #
     #           move vortices               #
     # ------------------------------------- #
+
+    # - move vortices - trailing edge emmits
     # velocity
     d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / te_vortex_u ** 2)
     # circulation
     d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
+    # leading edge emits vortices
+    if len(le_vortex_z) > 0:
+        le_ss = np.tile(le_vortex_strength, (len(le_vortex_strength), 1)).transpose()
+        le_uu = np.conjugate(np.tile(le_vortex_u, (len(le_vortex_u), 1)).transpose())
+        le_u = np.tile(le_vortex_u, (len(le_vortex_u), 1))
+        d4L = sum(-1j * le_ss / (2 * np.pi) * (1 / (le_u * (le_u - le_uu)))) + \
+              sum(-1j * le_ss / (2 * np.pi) * (1 / (le_u - le_uu)))
+    else:
+        d4L = 0
 
+    # trailing edge emits vortices
     te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
     te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
     te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
@@ -366,13 +400,9 @@ for iterate in range(iteration):
     te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
     d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
-    p = d1 + d2 + d3 + d4
+    p = d1 + d2 + d3 + d4 + d4L
 
-    # ------------------------------------------------- #
-    #            move vortices                          #
-    # ------------------------------------------------- #
-
-    vel_conj = p * dudz - 1j * te_vortex_strength * d2udz2 / dudz / (4 * np.pi)
+    vel_conj = p * dudz_te - 1j * te_vortex_strength * d2udz2_te / dudz_te / (4 * np.pi)
     te_vortex_vel = np.conj(vel_conj)
     te_vortex_z = te_vortex_z + te_vortex_vel * time_step
 
@@ -380,6 +410,41 @@ for iterate in range(iteration):
                    for index in range(len(te_vortex_z))]
     te_vortex_v = np.array(te_vortex_v)
     te_vortex_u = (te_vortex_v - center_circle) / radius
+
+    # - move vortices - leading edge emmits
+    if len(le_vortex_z) > 0:
+        # velocity
+        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / le_vortex_u ** 2)
+        # circulation
+        d2 = -1j * circulation / (2 * np.pi * le_vortex_u)
+        # trailing edge emits vortices
+        te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+        te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+        te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+        d4T = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu)))) + \
+              sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
+
+        # leading edge emits vortices
+        le_ss = diag_remove(le_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+        le_uu = diag_remove(le_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+        le_u = np.tile(le_vortex_u, (len(le_vortex_u) - 1, 1))
+        d3 = sum(-1j * le_ss / (2 * np.pi) * (1 / (le_u - le_uu)))
+
+        le_ss = np.tile(le_vortex_strength, (len(le_vortex_strength), 1)).transpose()
+        le_uu = np.conjugate(np.tile(le_vortex_u, (len(le_vortex_u), 1)).transpose())
+        le_u = np.tile(le_vortex_u, (len(le_vortex_u), 1))
+        d4 = sum(-1j * le_ss / (2 * np.pi) * (1 / (le_u * (le_u - le_uu))))
+
+        p = d1 + d2 + d3 + d4 + d4T
+
+        vel_conj = p * dudz_le - 1j * le_vortex_strength * d2udz2_le / dudz_le / (4 * np.pi)
+        le_vortex_vel = np.conj(vel_conj)
+        le_vortex_z = le_vortex_z + le_vortex_vel * time_step
+
+        le_vortex_v = [newton(le_vortex_v[index], 1e-8, 250, Gkn, radius, center_circle, le_vortex_z[index])
+                       for index in range(len(le_vortex_z))]
+        le_vortex_v = np.array(le_vortex_v)
+        le_vortex_u = (le_vortex_v - center_circle) / radius
 
     current_time += time_step
 
