@@ -120,8 +120,15 @@ te_vortex_z = np.array([])
 te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 
+le_vortex_strength = np.array([])
+le_vortex_z = np.array([])
+le_vortex_v = np.array([])
+le_vortex_u = np.array([])
+
 # activate several functions
 plunging_on = True
+leading_edge_emmit = False
+leading_edge_velocity_crit = 0.5
 
 iterate_time_step = np.array([])
 # ------ time step
@@ -135,6 +142,8 @@ heading_file = 'Plunging_solution_results/' + 'result_file_' + airfoil + '.txt'
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
           time_step, current_time, iteration, distance, angle, heading_file)
 print(airfoil)
+
+velocity_file = open('velocity.txt', 'w')
 
 # ------ iteration code
 for iterate in range(iteration):
@@ -160,7 +169,7 @@ for iterate in range(iteration):
         velocity = free_velocity
         aoa = free_aoa
 
-    # ------ calculate new vortex position
+    # ------ calculate new vortex position - trailing edge
     new_vortex_position_te_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
     new_vortex_position_te_z = complex(new_vortex_position_te_z)
     search_point = center_circle + radius
@@ -168,30 +177,157 @@ for iterate in range(iteration):
                                               new_vortex_position_te_z))
     new_vortex_position_te_u = complex((new_vortex_position_te_v - center_circle) / radius)
 
-    # ------ create function to calculate circulation
-    s = sum(te_vortex_strength)
-    # velocity calculation
-    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+    # ------ calculate new vortex position - leading edge
+    new_vortex_position_le_z = leading_edge_z - distance * pow(np.e, -1j * angle)
+    new_vortex_position_le_z = complex(new_vortex_position_le_z)
+    search_point = center_circle - radius
+    new_vortex_position_le_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                              new_vortex_position_le_z))
+    new_vortex_position_le_u = complex((new_vortex_position_le_v - center_circle) / radius)
+
+    # ------------------------------------- #
+    #    calculate leading edge velocity    #
+    # ------------------------------------- #
+    # freestream calculation
+    d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / leading_edge_u ** 2)
+
     # circulation
-    d2 = -1j / (2 * np.pi * trailing_edge_u)
-    # newly sheded vortex
-    p1 = 1.0 / (trailing_edge_u - new_vortex_position_te_u)
-    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_te_u)))
-    d3 = -1j / (2 * np.pi) * (p1 + p2)
+    if len(circulation_list) > 0:
+        d2 = -1j * circulation_list[-1] / (2 * np.pi * leading_edge_u)
+    else:
+        d2 = 0
 
-    # previously shed vortices
-    p1 = 1.0 / (trailing_edge_u - te_vortex_u)
-    p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(te_vortex_u)))
-    d4 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
-    d4 = sum(d4)
+    # previously shed vortices - leading edge
+    if len(le_vortex_strength) > 0:
+        p1 = 1.0 / (leading_edge_u - le_vortex_u)
+        p2 = 1.0 / (leading_edge_u * (1.0 - leading_edge_u * np.conjugate(le_vortex_u)))
+        d31 = -1j * le_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d31 = sum(d31)
+    else:
+        d31 = 0
 
-    circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
+    # previously shed vortices - trailing edge
+    if len(le_vortex_strength) > 0:
+        p1 = 1.0 / (leading_edge_u - te_vortex_u)
+        p2 = 1.0 / (leading_edge_u * (1.0 - leading_edge_u * np.conjugate(te_vortex_u)))
+        d32 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d32 = sum(d32)
+    else:
+        d32 = 0
+    dwdu = d1 + d2 + d31 + d32
 
-    circulation_list = np.append(circulation_list, [circulation])
-    te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_te_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
+    # calculate derivatives
+    power = np.arange(1, len(Gkn) + 1)
+    dzdu = radius - sum(Gkn * power / leading_edge_u ** (power + 1))
+    leading_edge_velocity_z = dwdu / dzdu
+    velocity_file.write(str(leading_edge_velocity_z) + str('\n'))
+
+    # ------ create function to calculate circulation
+    if leading_edge_velocity_z > leading_edge_velocity_crit and leading_edge_emmit:
+        # ----- leading edge calculations
+        # velocity calculation - leading edge point
+        d1L = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / leading_edge_u ** 2)
+        # circulation - leading edge point
+        d2L = -1j / (2 * np.pi * leading_edge_u)
+        # newly sheded vortex - leading edge - leading edge point
+        p1 = 1.0 / (leading_edge_u - new_vortex_position_le_u)
+        p2 = 1.0 / (leading_edge_u * (1 - leading_edge_u * np.conj(new_vortex_position_le_u)))
+        d31L = -1j / (2 * np.pi) * (p1 + p2)
+        # newly sheded vortex - trailing edge - leading edge point
+        p1 = 1.0 / (leading_edge_u - new_vortex_position_te_u)
+        p2 = 1.0 / (leading_edge_u * (1 - leading_edge_u * np.conj(new_vortex_position_te_u)))
+        d32L = -1j / (2 * np.pi) * (p1 + p2)
+        # previously shed vortices - leading edge
+        p1 = 1.0 / (leading_edge_u - le_vortex_u)
+        p2 = 1.0 / (leading_edge_u * (1.0 - leading_edge_u * np.conjugate(le_vortex_u)))
+        d41L = -1j * le_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d41L = sum(d41L)
+        # previously shed vortices - trailing edge
+        p1 = 1.0 / (leading_edge_u - te_vortex_u)
+        p2 = 1.0 / (leading_edge_u * (1.0 - leading_edge_u * np.conjugate(te_vortex_u)))
+        d42L = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d42L = sum(d42L)
+
+        # ----- trailing edge calculation
+        # velocity calculation - trailing edge point
+        d1T = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+        # circulation - trailing edge point
+        d2T = -1j / (2 * np.pi * trailing_edge_u)
+        # newly sheded vortex - leading edge - trailing edge point
+        p1 = 1.0 / (trailing_edge_u - new_vortex_position_le_u)
+        p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_le_u)))
+        d31T = -1j / (2 * np.pi) * (p1 + p2)
+        # newly sheded vortex - trailing edge - trailing edge point
+        p1 = 1.0 / (trailing_edge_u - new_vortex_position_te_u)
+        p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_te_u)))
+        d32T = -1j / (2 * np.pi) * (p1 + p2)
+        # previously shed vortices - leading edge
+        p1 = 1.0 / (trailing_edge_u - le_vortex_u)
+        p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(le_vortex_u)))
+        d41T = -1j * le_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d41T = sum(d41T)
+        # previously shed vortices - trailing edge
+        p1 = 1.0 / (trailing_edge_u - te_vortex_u)
+        p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(te_vortex_u)))
+        d42T = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d42T = sum(d42T)
+
+        E1 = -(d1T + d41T + d42T)
+        E2 = 1 / dzdu
+        E3 = leading_edge_velocity_crit / E2 - (d1L + d41L + d42L)
+        E4 = -(sum(te_vortex_strength) + sum(le_vortex_strength))
+        E5 = d31T / d2T - 1
+        E6 = d32T / d2T - 1
+        E7 = E1 / d2T - E4
+        E8 = d31L / d2L - 1
+        E9 = d32L / d2L - 1
+        E10 = E3 / d2L - E4
+        E11 = E6 / E5
+        E12 = E7 / E5
+        E13 = E9 / E8
+        E14 = E10 / E8
+
+        # - vortices calculation
+        te_vortex_strength_new = (E14 - E12) / (E13 - E11)
+        le_vortex_strength_new = E12 - E11 * te_vortex_strength_new
+        circulation = E4 - te_vortex_strength_new - le_vortex_strength_new
+        # - circulation append
+        circulation_list = np.append(circulation_list, [circulation])
+        # - trailing edge append
+        te_vortex_strength = np.append(te_vortex_strength, [te_vortex_strength_new])
+        te_vortex_z = np.append(te_vortex_z, [new_vortex_position_te_z])
+        te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
+        te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
+        # - leading edge append
+        le_vortex_strength = np.append(le_vortex_strength, [le_vortex_strength_new])
+        le_vortex_z = np.append(le_vortex_z, [new_vortex_position_le_z])
+        le_vortex_v = np.append(le_vortex_v, [new_vortex_position_le_v])
+        le_vortex_u = np.append(le_vortex_u, [new_vortex_position_le_u])
+
+    else:
+        s = sum(te_vortex_strength)
+        # velocity calculation
+        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+        # circulation
+        d2 = -1j / (2 * np.pi * trailing_edge_u)
+        # newly sheded vortex
+        p1 = 1.0 / (trailing_edge_u - new_vortex_position_te_u)
+        p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_te_u)))
+        d3 = -1j / (2 * np.pi) * (p1 + p2)
+
+        # previously shed vortices
+        p1 = 1.0 / (trailing_edge_u - te_vortex_u)
+        p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conjugate(te_vortex_u)))
+        d4 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d4 = sum(d4)
+
+        circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
+
+        circulation_list = np.append(circulation_list, [circulation])
+        te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
+        te_vortex_z = np.append(te_vortex_z, [new_vortex_position_te_z])
+        te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
+        te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
 
     # - calculate derivative
 
