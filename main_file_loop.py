@@ -143,11 +143,12 @@ for iterate in range(iteration):
     aoa = free_aoa
 
     # ------ calculate new vortex position
-    new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
-    new_vortex_position_z = complex(new_vortex_position_z)
+    new_vortex_position_te_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
+    new_vortex_position_te_z = complex(new_vortex_position_te_z)
     search_point = center_circle + radius
-    new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
-    new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
+    new_vortex_position_te_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                              new_vortex_position_te_z))
+    new_vortex_position_te_u = complex((new_vortex_position_te_v - center_circle) / radius)
 
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
@@ -156,8 +157,8 @@ for iterate in range(iteration):
     # circulation
     d2 = -1j / (2 * np.pi * trailing_edge_u)
     # newly sheded vortex
-    p1 = 1.0 / (trailing_edge_u - new_vortex_position_u)
-    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_u)))
+    p1 = 1.0 / (trailing_edge_u - new_vortex_position_te_u)
+    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_te_u)))
     d3 = -1j / (2 * np.pi) * (p1 + p2)
 
     # previously shed vortices
@@ -170,9 +171,9 @@ for iterate in range(iteration):
 
     circulation_list = np.append(circulation_list, [circulation])
     te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_te_z])
+    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
+    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
 
     # - calculate derivative
 
@@ -201,19 +202,32 @@ for iterate in range(iteration):
     # circulation
     d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 
-    p = d1 + d2
-    if len(te_vortex_u) > 1:
-        te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
-        te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
-        te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
-        d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
+    # if len(te_vortex_u) > 1:
+    #     te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+    #     te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+    #     te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
+    #     d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
+    #     print(iterate, d3)
+    #     p += d3
+    #
+    # te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+    # te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+    # te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+    # d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+    # print(iterate, d4)
+    # p += d4
 
-        te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
-        te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
-        te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-        d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+    te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+    te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+    te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
+    d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-        p += d3 + d4
+    te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+    te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+    te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+    d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+
+    p = d1 + d2 + d3 + d4
 
     # ------------------------------------------------- #
     #            move vortices                          #

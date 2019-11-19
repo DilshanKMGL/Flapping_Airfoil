@@ -104,8 +104,8 @@ free_velocity = re_num * viscosity / density
 free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
-pl_amplitude = 0.3
-pl_frequency = 6
+pl_amplitude = 0.5
+pl_frequency = 5
 # ------ pitching parameters
 pi_amplitude = 0
 pi_frequency = 0
@@ -119,39 +119,54 @@ te_vortex_strength = np.array([])
 te_vortex_z = np.array([])
 te_vortex_v = np.array([])
 te_vortex_u = np.array([])
+
+# activate several functions
+plunging_on = True
+
 iterate_time_step = np.array([])
 # ------ time step
 time_step = 0.001
 current_time = 0.00
-iteration = 2000
+iteration = 1000
 
 heading_file = 'Plunging_solution_results/' + 'result_file_' + airfoil + '.txt'
 # ----- write in a file
+
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
           time_step, current_time, iteration, distance, angle, heading_file)
 print(airfoil)
+
 # ------ iteration code
 for iterate in range(iteration):
     if iterate % 100 == 0:
         print('Iteration - ' + str(iterate))
 
-    # ------ calculate trailing edge position
+    # ------ calculate trailing edge position and leading edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
-    # ------ calculate plunging parameters
-    plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
-    plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
+    leading_edge_z = min(z_plane)
+    leading_edge_v = newton(min(v_plane), 1e-8, 250, Gkn, radius, center_circle, leading_edge_z)
+    leading_edge_u = complex((leading_edge_v - center_circle) / radius)
 
-    # --- calculate velocity
-    velocity = np.abs(free_velocity + plunging_vel)
-    aoa = free_aoa + np.angle(free_velocity + plunging_vel)
+    if plunging_on:
+        # ------ calculate plunging parameters
+        plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+        plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
+
+        # --- calculate velocity
+        velocity = np.abs(free_velocity + plunging_vel)
+        aoa = free_aoa + np.angle(free_velocity + plunging_vel)
+    else:
+        velocity = free_velocity
+        aoa = free_aoa
 
     # ------ calculate new vortex position
-    new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
-    new_vortex_position_z = complex(new_vortex_position_z)
+    new_vortex_position_te_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
+    new_vortex_position_te_z = complex(new_vortex_position_te_z)
     search_point = center_circle + radius
-    new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
-    new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
+    new_vortex_position_te_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                              new_vortex_position_te_z))
+    new_vortex_position_te_u = complex((new_vortex_position_te_v - center_circle) / radius)
 
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
@@ -160,8 +175,8 @@ for iterate in range(iteration):
     # circulation
     d2 = -1j / (2 * np.pi * trailing_edge_u)
     # newly sheded vortex
-    p1 = 1.0 / (trailing_edge_u - new_vortex_position_u)
-    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_u)))
+    p1 = 1.0 / (trailing_edge_u - new_vortex_position_te_u)
+    p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_te_u)))
     d3 = -1j / (2 * np.pi) * (p1 + p2)
 
     # previously shed vortices
@@ -174,12 +189,11 @@ for iterate in range(iteration):
 
     circulation_list = np.append(circulation_list, [circulation])
     te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_te_z])
+    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_te_v])
+    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_te_u])
 
     # - calculate derivative
-
     power = np.arange(1, len(Gkn) + 1)
     Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
     power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
@@ -205,19 +219,17 @@ for iterate in range(iteration):
     # circulation
     d2 = -1j * circulation / (2 * np.pi * te_vortex_u)
 
-    p = d1 + d2
-    if len(te_vortex_u) > 1:
-        te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
-        te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
-        te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
-        d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
+    te_ss = diag_remove(te_vortex_strength).transpose()  # strength of vortices, remove diagonal and transpose
+    te_uu = diag_remove(te_vortex_u).transpose()  # cener of vortices, remove diagonal and transpose
+    te_u = np.tile(te_vortex_u, (len(te_vortex_u) - 1, 1))
+    d3 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u - te_uu)))
 
-        te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
-        te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
-        te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-        d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+    te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
+    te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
+    te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
+    d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
 
-        p += d3 + d4
+    p = d1 + d2 + d3 + d4
 
     # ------------------------------------------------- #
     #            move vortices                          #

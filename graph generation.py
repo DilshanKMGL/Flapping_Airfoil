@@ -18,8 +18,8 @@ iteration = int(data_line[19][:-1])
 current_iter_line = 25
 time_step = float(data_line[15][:-1])
 
-vortex_strength = data_line[27 + iteration * 2][1:-2].replace(' ', '').split(',')
-vortex_strength = np.array([float(index) for index in vortex_strength])
+te_vortex_strength = data_line[27 + iteration * 2][1:-2].replace(' ', '').split(',')
+te_vortex_strength = np.array([float(index) for index in te_vortex_strength])
 
 pl_amplitude = float(data_line[7][:-1])
 pl_frequency = float(data_line[9][:-1])
@@ -35,14 +35,26 @@ for i in range(iteration):
     data = data_line[current_iter_line][1:-2].replace(' ', '').split(',')
     data = np.array([complex(index) for index in data]) * aoa
 
+    te_strength_part = te_vortex_strength[:len(data)]
+    # print(te_strength_part)
+    cw_vortex = np.array([])
+    ccw_vortex = np.array([])
+
+    for j in range(len(te_strength_part)):
+        if te_strength_part[j] > 0:
+            ccw_vortex = np.append(ccw_vortex, [data[j]])
+        else:
+            cw_vortex = np.append(cw_vortex, [data[j]])
+
     plt.xlim(-1, 20)
     plt.ylim(-8, 6)
 
     plt.axis('off')
     plt.grid(False)
-    plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag, color='b')
+    plt.plot(airfoil_coordinate.real, airfoil_coordinate.imag, color='g')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.scatter(data.real, data.imag, s=2, color='g')
+    plt.scatter(ccw_vortex.real, ccw_vortex.imag, s=2, color='b')
+    plt.scatter(cw_vortex.real, cw_vortex.imag, s=2, color='r')
 
     plt.savefig('Plunging_solution_results/' + str(i))
     plt.close()
