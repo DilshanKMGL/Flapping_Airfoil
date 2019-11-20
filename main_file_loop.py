@@ -213,7 +213,7 @@ for iterate in range(iteration):
     # te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
     # te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
     # te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-    # d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+    # d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (1.0 - te_u * te_uu))))
     # print(iterate, d4)
     # p += d4
 
@@ -225,7 +225,7 @@ for iterate in range(iteration):
     te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
     te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
     te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-    d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+    d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (1.0 - te_u * te_uu))))
 
     p = d1 + d2 + d3 + d4
 
