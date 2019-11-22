@@ -163,7 +163,7 @@ for airfoil_name in airfoil_list:
         d2 = -1j / (2 * np.pi * trailing_edge_u)
         # newly sheded vortex
         p1 = 1.0 / (trailing_edge_u - new_vortex_position_u)
-        p2 = 1.0 / (trailing_edge_u * (1 - trailing_edge_u * np.conj(new_vortex_position_u)))
+        p2 = 1.0 / (trailing_edge_u * (1.0 - trailing_edge_u * np.conj(new_vortex_position_u)))
         d3 = -1j / (2 * np.pi) * (p1 + p2)
 
         # previously shed vortices
@@ -217,7 +217,7 @@ for airfoil_name in airfoil_list:
             te_ss = np.tile(te_vortex_strength, (len(te_vortex_strength), 1)).transpose()
             te_uu = np.conjugate(np.tile(te_vortex_u, (len(te_vortex_u), 1)).transpose())
             te_u = np.tile(te_vortex_u, (len(te_vortex_u), 1))
-            d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (te_u - te_uu))))
+            d4 = sum(-1j * te_ss / (2 * np.pi) * (1 / (te_u * (1.0 - te_u * te_uu))))
 
             p += d3 + d4
 

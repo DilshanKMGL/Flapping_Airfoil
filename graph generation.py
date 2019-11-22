@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 airfoil = 2412
-data_file = open('Plunging_solution_results/result_file_NACA' + str(airfoil) + '.txt', 'r')
+# data_file = open('Plunging_solution_results/result_file_NACA' + str(airfoil) + '.txt', 'r')
+data_file = open('Transient_solution_results/result_file_NACA' + str(airfoil) + '.txt', 'r')
 data_line = data_file.readlines()
 aoa = float(data_line[5][:-1])
 aoa = np.exp(1j * aoa)
 
-file2_name = data_line[1][:-1] + '_data.txt'
+file2_name = 'Airfoil_data/' + data_line[1][:-1] + '_data.txt'
 airfoil_file = open(file2_name, 'r')
 airfoil_line = airfoil_file.readlines()
 airfoil_coordinate = airfoil_line[13][:-3].replace('i', 'j').split(' ')
@@ -56,6 +57,7 @@ for i in range(iteration):
     plt.scatter(ccw_vortex.real, ccw_vortex.imag, s=2, color='b')
     plt.scatter(cw_vortex.real, cw_vortex.imag, s=2, color='r')
 
-    plt.savefig('Plunging_solution_results/' + str(i))
+    # plt.savefig('Plunging_solution_results/' + str(i))
+    plt.savefig('Transient_solution_results/' + str(i))
     plt.close()
     current_iter_line += 2
