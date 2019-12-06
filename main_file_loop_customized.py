@@ -1,6 +1,5 @@
 import numpy as np
 import time
-import force_calculation as fc
 
 
 def read_data(heading):
@@ -233,6 +232,7 @@ def move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z):
 
 
 def calcualte_force(iterate):
+    # calculate wake vorticity
     Iwx = sum(te_vortex_z.imag * te_vortex_strength)
     Iwy = -sum(te_vortex_z.real * te_vortex_strength)
     if iterate != 0:
@@ -241,8 +241,14 @@ def calcualte_force(iterate):
     else:
         Fwx = 0
         Fwy = 0
-    print(Fwx, Fwy)
 
+    # calculate bound vorticity
+    num_div = 100
+    phi = 2 * np.pi / num_div  # divisable number
+    angle = np.array([n*phi for n in range(num_div)])
+    circle_point = center_circle + radius * np.exp(1j * angle)
+
+    return Fwx, Fwy
 
 
 # ------ iteration code
