@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import force_calculation as fc
 
 
 def read_data(heading):
@@ -130,11 +131,12 @@ heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
 make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
           time_step, current_time, iteration, distance, angle, heading_file)
 print(airfoil)
-# ------ iteration code
-for iterate in range(iteration):
-    if iterate % 100 == 0:
-        print('Iteration - ' + str(iterate))
 
+Iwx_pre = 0
+Iwy_pre = 0
+
+
+def initialize_field():
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
@@ -148,7 +150,10 @@ for iterate in range(iteration):
     search_point = center_circle + radius
     new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
     new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
+    return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u
 
+
+def calculate_circulation():
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
     # velocity calculation
@@ -168,14 +173,11 @@ for iterate in range(iteration):
 
     circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
 
-    circulation_list = np.append(circulation_list, [circulation])
-    te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+    return circulation, s
 
+
+def move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z):
     # - calculate derivative
-
     power = np.arange(1, len(Gkn) + 1)
     Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
     power_coeff = np.tile(power, (len(te_vortex_u), 1)).transpose()
@@ -189,8 +191,7 @@ for iterate in range(iteration):
     d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_coeff ** (power_coeff + 2))
     d2udz2 = - dudv * d2zdv2 / dzdv ** 3
 
-    # ------ iterate time
-    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+    # ------ update file
     update_file(te_vortex_z, iterate, heading_file)
 
     # ------------------------------------- #
@@ -228,6 +229,43 @@ for iterate in range(iteration):
     te_vortex_v = np.array(te_vortex_v)
     te_vortex_u = (te_vortex_v - center_circle) / radius
 
+    return te_vortex_u, te_vortex_v, te_vortex_z
+
+
+def calcualte_force(iterate):
+    Iwx = sum(te_vortex_z.imag * te_vortex_strength)
+    Iwy = -sum(te_vortex_z.real * te_vortex_strength)
+    if iterate != 0:
+        Fwx = - (Iwx - Iwx_pre) / time_step
+        Fwy = - (Iwy - Iwy_pre) / time_step
+    else:
+        Fwx = 0
+        Fwy = 0
+    print(Fwx, Fwy)
+
+
+
+# ------ iteration code
+for iterate in range(iteration):
+    if iterate % 100 == 0:
+        print('Iteration - ' + str(iterate))
+
+    trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
+        initialize_field()
+    circulation, s = calculate_circulation()
+
+    circulation_list = np.append(circulation_list, [circulation])
+    te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
+    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
+    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
+    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+
+    # - calculate forces
+    force = calcualte_force(iterate)
+
+    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+
+    te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z)
     current_time += time_step
 
 write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
