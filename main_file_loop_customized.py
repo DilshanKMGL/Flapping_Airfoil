@@ -231,7 +231,7 @@ def move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z):
     return te_vortex_u, te_vortex_v, te_vortex_z
 
 
-def calcualte_force(iterate):
+def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre):
     # calculate wake vorticity
     Iwx = sum(te_vortex_z.imag * te_vortex_strength)
     Iwy = -sum(te_vortex_z.real * te_vortex_strength)
@@ -242,13 +242,26 @@ def calcualte_force(iterate):
         Fwx = 0
         Fwy = 0
 
+    Iwx_pre = Iwx
+    Iwy_pre = Iwy
+
     # calculate bound vorticity
     num_div = 100
     phi = 2 * np.pi / num_div  # divisable number
     angle = np.array([n*phi for n in range(num_div)])
     circle_point = center_circle + radius * np.exp(1j * angle)
 
-    return Fwx, Fwy
+    # - calculate derivative
+    power = np.arange(1, len(Gkn) + 1)
+    Gkn_coeff = np.tile(Gkn, (len(circle_point), 1)).transpose()
+    power_coeff = np.tile(power, (len(circle_point), 1)).transpose()
+    te_coeff = np.tile(circle_point, (len(Gkn), 1))
+
+    dzdv = 1.0 - sum(Gkn_coeff * power_coeff / radius / te_coeff ** (power_coeff + 1))
+
+    # calculate dwdv
+    print(np.shape(dzdv), np.shape(circle_point))
+    return Fwx, Fwy, Iwx_pre, Iwy_pre
 
 
 # ------ iteration code
@@ -267,7 +280,7 @@ for iterate in range(iteration):
     te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
     # - calculate forces
-    force = calcualte_force(iterate)
+    force = calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre)
 
     iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 

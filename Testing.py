@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import numpy as np
 
 radius = 0.27546
 center_circle = 0.48333+0.01141j
@@ -11,3 +12,5 @@ print(circle_point)
 plt.plot(circle_point.real, circle_point.imag)
 plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
+
+print(np.shape([1,2,3]))
