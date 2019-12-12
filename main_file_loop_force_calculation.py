@@ -117,57 +117,6 @@ def diag_remove(p):
     return p
 
 
-start = time.time()
-iterate_time = start
-# ------ airfoil data
-# 2410 2418
-airfoil = 'NACA2412'
-N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
-# ------ free stream velocity
-re_num = 1e6
-density = 1.225
-viscosity = 1.789e-5
-free_velocity = re_num * viscosity / density
-free_aoa = 0.0
-free_aoa = np.deg2rad(free_aoa)
-# ------ plunging parameters
-pl_amplitude = 0
-pl_frequency = 0
-# ------ pitching parameters
-pi_amplitude = 0
-pi_frequency = 0
-# ------ new vortex
-distance = 0.001
-angle = 0
-angle = np.deg2rad(angle)
-# ------ data store
-circulation_list = np.array([])
-te_vortex_strength = np.array([])
-te_vortex_z = np.array([])
-te_vortex_v = np.array([])
-te_vortex_u = np.array([])
-iterate_time_step = np.array([])
-# ------ time step
-time_step = 0.005
-current_time = 0.00
-iteration = 2000
-
-# ----- write in a file
-heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-          time_step, current_time, iteration, distance, angle, heading_file)
-heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
-make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                time_step, current_time, iteration, distance, angle, heading_force_file)
-print(airfoil)
-
-Iwx_pre = 0
-Iwy_pre = 0
-
-Ibvx_pre = 0
-Ibvy_pre = 0
-
-
 def initialize_field():
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
@@ -270,7 +219,7 @@ def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
     Iwy = -sum(te_vortex_z.real * te_vortex_strength)
 
     # calculate bound vorticity
-    num_div = 100
+    num_div = 1000
     phi = 2 * np.pi / num_div  # divisable number
     angle = np.array([n * phi for n in range(num_div)])
     circle_point_u = np.exp(1j * angle)
@@ -306,7 +255,7 @@ def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
     d3 = sum(d3)
     dwdv = d1 + d2 + d3
 
-    inner = np.imag((dwdv - velocity * np.exp(-1j * angle) * dzdv) * np.exp(1j * angle))
+    inner = np.imag((dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle))*phi
     Ibvx = - sum(inner * airfoil_point.imag)
     Ibvy = sum(inner * airfoil_point.real)
 
@@ -329,6 +278,56 @@ def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
     return Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
+
+start = time.time()
+iterate_time = start
+# ------ airfoil data
+# 2410 2418
+airfoil = 'NACA2412'
+N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
+# ------ free stream velocity
+re_num = 1e6
+density = 1.225
+viscosity = 1.789e-5
+free_velocity = re_num * viscosity / density
+free_aoa = 0.0
+free_aoa = np.deg2rad(free_aoa)
+# ------ plunging parameters
+pl_amplitude = 0
+pl_frequency = 0
+# ------ pitching parameters
+pi_amplitude = 0
+pi_frequency = 0
+# ------ new vortex
+distance = 0.001
+angle = 0
+angle = np.deg2rad(angle)
+# ------ data store
+circulation_list = np.array([])
+te_vortex_strength = np.array([])
+te_vortex_z = np.array([])
+te_vortex_v = np.array([])
+te_vortex_u = np.array([])
+iterate_time_step = np.array([])
+# ------ time step
+time_step = 0.005
+current_time = 0.00
+iteration = 1500
+
+# ----- write in a file
+heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+          time_step, current_time, iteration, distance, angle, heading_file)
+heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
+make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                time_step, current_time, iteration, distance, angle, heading_force_file)
+print(airfoil)
+
+Iwx_pre = 0
+Iwy_pre = 0
+
+Ibvx_pre = 0
+Ibvy_pre = 0
 
 # ------ iteration code
 for iterate in range(iteration):

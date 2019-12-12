@@ -117,57 +117,6 @@ def diag_remove(p):
     return p
 
 
-start = time.time()
-iterate_time = start
-# ------ airfoil data
-# 2410 2418
-airfoil = 'NACA2412'
-N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
-# ------ free stream velocity
-re_num = 1e6
-density = 1.225
-viscosity = 1.789e-5
-free_velocity = re_num * viscosity / density
-free_aoa = 0.0
-free_aoa = np.deg2rad(free_aoa)
-# ------ plunging parameters
-pl_amplitude = 0
-pl_frequency = 0
-# ------ pitching parameters
-pi_amplitude = 0
-pi_frequency = 0
-# ------ new vortex
-distance = 0.001
-angle = 0
-angle = np.deg2rad(angle)
-# ------ data store
-circulation_list = np.array([])
-te_vortex_strength = np.array([])
-te_vortex_z = np.array([])
-te_vortex_v = np.array([])
-te_vortex_u = np.array([])
-iterate_time_step = np.array([])
-# ------ time step
-time_step = 0.005
-current_time = 0.00
-iteration = 2000
-
-# ----- write in a file
-heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-          time_step, current_time, iteration, distance, angle, heading_file)
-heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
-make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                time_step, current_time, iteration, distance, angle, heading_force_file)
-print(airfoil)
-
-Iwx_pre = 0
-Iwy_pre = 0
-
-Ibvx_pre = 0
-Ibvy_pre = 0
-
-
 def initialize_field():
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
@@ -330,32 +279,87 @@ def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
     return Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
 
-# ------ iteration code
-for iterate in range(iteration):
-    if iterate % 100 == 0:
-        print('Iteration - ' + str(iterate))
+airfoil_list = ['0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '2408',
+                '2410', '2411', '2412', '2414', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424',
+                '6409', '6412']
 
-    trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
-        initialize_field()
-    circulation, s = calculate_circulation()
+for air in airfoil_list:
+    start = time.time()
+    iterate_time = start
+    # ------ airfoil data
+    # 2410 2418
+    airfoil = 'NACA' + air
+    N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
+    # ------ free stream velocity
+    re_num = 1e6
+    density = 1.225
+    viscosity = 1.789e-5
+    free_velocity = re_num * viscosity / density
+    free_aoa = 0.0
+    free_aoa = np.deg2rad(free_aoa)
+    # ------ plunging parameters
+    pl_amplitude = 0
+    pl_frequency = 0
+    # ------ pitching parameters
+    pi_amplitude = 0
+    pi_frequency = 0
+    # ------ new vortex
+    distance = 0.001
+    angle = 0
+    angle = np.deg2rad(angle)
+    # ------ data store
+    circulation_list = np.array([])
+    te_vortex_strength = np.array([])
+    te_vortex_z = np.array([])
+    te_vortex_v = np.array([])
+    te_vortex_u = np.array([])
+    iterate_time_step = np.array([])
+    # ------ time step
+    time_step = 0.005
+    current_time = 0.00
+    iteration = 1500
 
-    circulation_list = np.append(circulation_list, [circulation])
-    te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+    # ----- write in a file
+    heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
+    make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+              time_step, current_time, iteration, distance, angle, heading_file)
+    heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
+    make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                    time_step, current_time, iteration, distance, angle, heading_force_file)
+    print(airfoil)
 
-    # - calculate forces
-    Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
-        calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre)
+    Iwx_pre = 0
+    Iwy_pre = 0
 
-    force_x = Fwx + Fbvx
-    force_y = Fwy + Fbvy
-    update_force_file(force_x, force_y, heading_force_file)
-    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+    Ibvx_pre = 0
+    Ibvy_pre = 0
 
-    te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z)
-    current_time += time_step
+    # ------ iteration code
+    for iterate in range(iteration):
+        if iterate % 100 == 0:
+            print('Iteration - ' + str(iterate))
 
-write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
-print('total time ', time.time() - start)
+        trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
+            initialize_field()
+        circulation, s = calculate_circulation()
+
+        circulation_list = np.append(circulation_list, [circulation])
+        te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
+        te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
+        te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
+        te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+
+        # - calculate forces
+        Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
+            calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre)
+
+        force_x = Fwx + Fbvx
+        force_y = Fwy + Fbvy
+        update_force_file(force_x, force_y, heading_force_file)
+        iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+
+        te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z)
+        current_time += time_step
+
+    write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
+    print('total time ', time.time() - start)
