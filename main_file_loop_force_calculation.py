@@ -58,8 +58,7 @@ def make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency
     file1.write('iteration\n' + str(iteration) + '\n')
     file1.write('distance\n' + str(distance) + '\n')
     file1.write('angle\n' + str(angle) + '\n')
-    file1.write('Force values - x and y\n')
-
+    file1.write('Force values - x and y, Fwx, Fwy, Fbvx, Fbvy\n')
     file1.close()
 
 
@@ -69,10 +68,10 @@ def update_file(te_vortex_z, iteration, heading):
     file1.write('te_vortex_z - iteration ' + str(iteration + 1) + '\n' + str(list(te_vortex_z)) + '\n')
 
 
-def update_force_file(force_x, force_y, heading):
+def update_force_file(force_x, force_y, Fwx, Fwy, Fbvx, Fbvy, heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
-    file1.write(str(force_x) + ' ' + str(force_y) + '\n')
+    file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fwx) + ' ' + str(Fwy) + ' ' + str(Fbvx) + ' ' + str(Fbvy) + '\n')
 
 
 def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
@@ -255,7 +254,8 @@ def calcualte_force(iterate, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
     d3 = sum(d3)
     dwdv = d1 + d2 + d3
 
-    inner = np.imag((dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle))*phi
+    # inner = np.imag((dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle))*phi
+    inner = np.imag(dwdv * np.exp(1j * angle)) * phi
     Ibvx = - sum(inner * airfoil_point.imag)
     Ibvy = sum(inner * airfoil_point.real)
 
@@ -350,7 +350,7 @@ for iterate in range(iteration):
 
     force_x = Fwx + Fbvx
     force_y = Fwy + Fbvy
-    update_force_file(force_x, force_y, heading_force_file)
+    update_force_file(force_x, force_y, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
     iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 
     te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z)
