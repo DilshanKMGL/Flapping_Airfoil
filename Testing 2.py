@@ -1,10 +1,20 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+a = np.array([2,3,4])
+print(type(a))
+b = [1,2,3]
+print(type(b))
+print(type(list(a)))
+
+if type(a) == 'numpy.ndarray':
+    print(2)
+'''
 A = np.array([[1.6, -0.5,0,0,0], [1.1,-0.6,-0.5,0,0],[0,1.1,-0.6,-0.5,0],[0,0,1.1,-0.6,-0.5],[0,0,0,1.6,-0.6]])
 B = np.array([1.1,0,0,0,0])
 X = np.linalg.inv(A).dot(B)
 print(X)
+'''
 '''
 # map into z plane
 radius = 0.27546
