@@ -98,12 +98,17 @@ def update_force_file(force_x, force_y, Fwx, Fwy, Fbvx, Fbvy, heading):
     file1.close()
 
 
-def update_mis_file(para1, heading):
+def update_mis_file(para1, heading, value):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     if len(list(para1)) > 1:
         for index in range(len(para1)):
-            file1.write(str(para1[index]) + ' ')
+            if value == 0:
+                # wrtite complex numbers directly
+                file1.write(str(para1[index]) + ' ')
+            elif value == 1:
+                # write real and imaginary parts seperately
+                file1.write(str(para1[index].real) + ' ' + str(para1[index].imag) + ' ')
         file1.write('\n')
     else:
         file1.write(str(para1) + '\n')
@@ -156,9 +161,17 @@ def initialize_field():
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
+    # ------ calculate plunging parameters
+    plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+    plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
+
     # --- calculate velocity
-    velocity = free_velocity
-    aoa = free_aoa
+    velocity = np.abs(free_velocity + plunging_vel)
+    aoa = free_aoa + np.angle(free_velocity + plunging_vel)
+
+    # --- calculate velocity
+    # velocity = free_velocity
+    # aoa = free_aoa
 
     # ------ calculate new vortex position
     new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
@@ -294,21 +307,21 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibv
     d3 = sum(d3)
     dwdv = d1 + d2 + d3
 
-    inner = np.imag((dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle)) * phi
-    # inner = np.imag(dwdv * np.exp(1j * angle)) * phi
+    # inner = np.imag((dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle)) * phi
+    inner = np.imag(dwdv / dzdv * np.exp(1j * angle)) * phi
     Ibvx = - sum(inner * airfoil_point.imag)
     Ibvy = sum(inner * airfoil_point.real)
 
     '''mis file section'''
     # tangential_velocity = (dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle)
     # update_mis_file(tangential_velocity, heading_mis_file)
-    velocity_air = dwdv/dzdv - velocity * np.exp(-1j * aoa)
-    update_mis_file(velocity_air, heading_mis_file)
+    velocity_air = dwdv/dzdv
+    update_mis_file(velocity_air, heading_mis_file, 1)
 
     # force calculation
     if iterate != 0:
-        Fwx = - (Iwx - Iwx_pre) / time_step
-        Fwy = - (Iwy - Iwy_pre) / time_step
+        Fwx = - (Iwx - Iwx_pre) / time_step * density
+        Fwy = - (Iwy - Iwy_pre) / time_step * density
         Fbvx = - (Ibvx - Ibvx_pre) / time_step
         Fbvy = - (Ibvy - Ibvy_pre) / time_step
     else:
@@ -329,7 +342,7 @@ start = time.time()
 iterate_time = start
 # ------ airfoil data
 # 2410 2418
-airfoil = 'NACA2412'
+airfoil = 'NACA1408'
 N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 # ------ free stream velocity
 re_num = 1e6
@@ -367,8 +380,11 @@ make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_ampli
 heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
 make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
                 time_step, current_time, iteration, distance, angle, heading_force_file)
-heading_mis_file = 'Transient_solution_results/' + 'mis_file_' + airfoil + '.txt'
-type_name = 'velocity on the airfoil'
+type_name = 'velocity_on_the_airfoil_'
+# type_name = 'tangential_velocity_'
+# type_name = 'velocity_on_the_airfoil_values_'
+# type_name = 'tangential_velocity_values_'
+heading_mis_file = 'Transient_solution_results/' + 'mis_file_' + type_name + airfoil + '.txt'
 make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle, heading_mis_file, type_name)
 print(airfoil)
