@@ -380,9 +380,9 @@ te_vortex_v = np.array([])
 te_vortex_u = np.array([])
 iterate_time_step = np.array([])
 # ------ time step
-time_step = 0.005
+time_step = 0.002
 current_time = 0.00
-iteration = 1000
+iteration = 2500
 
 # ----- write in a file
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
