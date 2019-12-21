@@ -2,6 +2,7 @@ import numpy as np
 import time
 from _datetime import datetime as dt
 import os
+import xlsxwriter as xl
 
 
 def read_data(heading):
@@ -62,7 +63,7 @@ def make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency
     file1.write('distance\n' + str(distance) + '\n')
     file1.write('angle\n' + str(angle) + '\n')
     file1.write('First value is the iteration number' + '\n')
-    file1.write('Force values - x and y, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy\n')
+    file1.write('Force values - x and y, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, lift, drag\n')
     file1.close()
 
 
@@ -101,11 +102,14 @@ def update_file(te_vortex_z, iteration, heading):
 def update_force_file(iteration, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
     force_x = Fwx + Fbvx + Fvx
     force_y = Fwy + Fbvy + Fvy
+    lift = force_y * np.cos(aoa) - force_x * np.sin(aoa)
+    drag = force_x * np.cos(aoa) + force_y * np.sin(aoa)
+
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write(str(iteration) + ' ')  # iteration number
     file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fvx) + ' ' + str(Fvy) + ' ' + str(Fwx) + ' ' +
-                str(Fwy) + ' ' + str(Fbvx) + ' ' + str(Fbvy) + '\n')
+                str(Fwy) + ' ' + str(Fbvx) + ' ' + str(Fbvy) + ' ' + str(lift) + ' ' + str(drag) + '\n')
     file1.close()
 
 
@@ -148,6 +152,17 @@ def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
         file1.write(str(value) + ' ')
     file1.write('\n')
     file1.close()
+
+
+def create_excel_file(path_dir):
+    force_file = open(path_dir + '/force_file.txt')
+    result_file = open(path_dir + '/result_file.txt')
+    force_line = force_file.readlines()
+    result_line = result_file.readlines()
+    airfoil_name = force_line[1][:-1]
+    workbook = xl.Workbook(path_dir + '/Data.xlsx')
+    worksheet = workbook.add_worksheet(airfoil_name)
+    workbook.close()
 
 
 def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
@@ -355,6 +370,7 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iw
         Fwy = - (Iwy - Iwy_pre) / time_step * density
         Fbvx = - (Ibvx - Ibvx_pre) / time_step
         Fbvy = - (Ibvy - Ibvy_pre) / time_step
+
     else:
         Fvx = 0
         Fvy = 0
@@ -436,6 +452,7 @@ iterate_time_step = np.array([])
 main_file = True
 force_file = True
 mis_file = False
+xlwrite = True
 
 # ----- make directory
 if not os.path.exists('Results'):
@@ -503,3 +520,6 @@ if main_file:
     write_steady_circulation(steady_circulation, heading_file)
     write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
 print('total time ', time.time() - start)
+
+if xlwrite:
+    create_excel_file(path_dir)
