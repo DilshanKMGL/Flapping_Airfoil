@@ -350,7 +350,7 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iw
     return Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
 
-aoa_list = np.arange(1.0, 20.0, 1)
+aoa_list = np.arange(0.0, 20.0, 1)
 
 for aoa_new in aoa_list:
     start = time.time()
@@ -384,9 +384,9 @@ for aoa_new in aoa_list:
     te_vortex_u = np.array([])
     iterate_time_step = np.array([])
     # ------ time step
-    time_step = 0.005
+    time_step = 0.002
     current_time = 0.00
-    iteration = 1000
+    iteration = 2500
 
     # ----- write in a file
     heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '_aoa_' + str(aoa_new) + '.txt'

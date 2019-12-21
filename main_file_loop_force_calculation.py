@@ -27,7 +27,7 @@ def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_a
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
-    file1.write('free_aoa\n' + str(free_aoa) + '\n')
+    file1.write('free_aoa\n' + str(np.rad2deg(free_aoa)) + '\n')
     file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
     file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
     file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
@@ -90,7 +90,9 @@ def update_file(te_vortex_z, iteration, heading):
     file1.close()
 
 
-def update_force_file(force_x, force_y, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
+def update_force_file(Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
+    force_x = Fwx + Fbvx + Fvx
+    force_y = Fwy + Fbvy + Fvy
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fvx) + ' ' + str(Fvy) + ' ' + str(Fwx) + ' ' +
@@ -219,9 +221,6 @@ def move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z):
 
     d2zdv2 = sum(Gkn_coeff * power_coeff * (power_coeff + 1) / radius ** 2 / te_coeff ** (power_coeff + 2))
     d2udz2 = - dudv * d2zdv2 / dzdv ** 3
-
-    # ------ update file
-    update_file(te_vortex_z, iterate, heading_file)
 
     # ------------------------------------- #
     #           move vortices               #
@@ -361,7 +360,7 @@ re_num = 1e6
 density = 1.225
 viscosity = 1.789e-5
 free_velocity = re_num * viscosity / density
-free_aoa = 5.0
+free_aoa = 0.0
 free_aoa = np.deg2rad(free_aoa)
 # ------ plunging parameters
 pl_amplitude = 0
@@ -387,11 +386,17 @@ iteration = 1000
 
 # ----- write in a file
 heading_file = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-          time_step, current_time, iteration, distance, angle, heading_file)
+main_file = False
+if main_file:
+    make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+              time_step, current_time, iteration, distance, angle, heading_file)
+
 heading_force_file = 'Transient_solution_results/' + 'force_file_' + airfoil + '.txt'
-make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                time_step, current_time, iteration, distance, angle, heading_force_file)
+force_file = False
+if force_file:
+    make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                    time_step, current_time, iteration, distance, angle, heading_force_file)
+
 type_name = 'velocity_on_the_airfoil_'
 # type_name = 'tangential_velocity_'
 # type_name = 'velocity_on_the_airfoil_values_'
@@ -427,18 +432,21 @@ for iterate in range(iteration):
     te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
     te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
 
+    # update main file
+    if main_file:
+        update_file(te_vortex_z, iterate, heading_file)
+
     # - calculate forces
     Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
         calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre,
                         circulation, te_vortex_u, te_vortex_z, te_vortex_strength)
-
-    force_x = Fwx + Fbvx + Fvx
-    force_y = Fwy + Fbvy + Fvy
-    update_force_file(force_x, force_y, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
+    if force_file:
+        update_force_file(Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
     iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 
     te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(iterate_time_step, te_vortex_u, te_vortex_v, te_vortex_z)
     current_time += time_step
 
-write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
+if main_file:
+    write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
 print('total time ', time.time() - start)
