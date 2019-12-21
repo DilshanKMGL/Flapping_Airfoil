@@ -99,7 +99,7 @@ def update_file(te_vortex_z, iteration, heading):
     file1.close()
 
 
-def update_force_file(iteration, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
+def update_force_file(iterate, aoa, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
     force_x = Fwx + Fbvx + Fvx
     force_y = Fwy + Fbvy + Fvy
     lift = force_y * np.cos(aoa) - force_x * np.sin(aoa)
@@ -107,7 +107,7 @@ def update_force_file(iteration, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
 
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
-    file1.write(str(iteration) + ' ')  # iteration number
+    file1.write(str(iterate) + ' ')  # iteration number
     file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fvx) + ' ' + str(Fvy) + ' ' + str(Fwx) + ' ' +
                 str(Fwy) + ' ' + str(Fbvx) + ' ' + str(Fbvy) + ' ' + str(lift) + ' ' + str(drag) + '\n')
     file1.close()
@@ -198,7 +198,8 @@ def diag_remove(p):
     return p
 
 
-def initialize_field():
+def initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude, trailing_edge_z,
+                     distance, angle, Gkn, trailing_edge_v, current_time):
     # ------ calculate trailing edge position
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
 
@@ -223,7 +224,8 @@ def initialize_field():
     return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u
 
 
-def calculate_circulation():
+def calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength, new_vortex_position_u,
+                          te_vortex_u):
     # ------ create function to calculate circulation
     s = sum(te_vortex_strength)
     # velocity calculation
@@ -246,7 +248,8 @@ def calculate_circulation():
     return circulation, s
 
 
-def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z):
+def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle, radius, velocity, aoa, circulation,
+                  te_vortex_strength, time_step):
     # - calculate derivative
     power = np.arange(1, len(Gkn) + 1)
     Gkn_coeff = np.tile(Gkn, (len(te_vortex_u), 1)).transpose()
@@ -300,11 +303,12 @@ def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z):
 
 
 def calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
-                    te_vortex_u, te_vortex_z, te_vortex_strength):
+                    te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density, mis_file,
+                    heading_mis_file):
     # calculate by velocity
-    I0 = velocity * np.exp(1j * aoa) * time_step * iteration
-    Iwvx = I0.real
-    Iwvy = I0.imag
+    I0 = velocity * np.exp(1j * aoa) * time_step * iterate
+    Iwvx = I0.imag
+    Iwvy = I0.real
 
     # calculate wake vorticity
     Iwx = sum(te_vortex_z.imag * te_vortex_strength)
@@ -399,127 +403,136 @@ def steady_state_circulation(velocity, aoa, trailing_edge_v, center_circle, radi
     return steady_circulation.real
 
 
-start = time.time()
-iterate_time = start
-ctime = dt.now().strftime("%Y-%m-%d %H.%M.%S")
-# ------ airfoil data
-airfoil = 'NACA2412'
-N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
+def main():
+    start = time.time()
+    iterate_time = start
+    ctime = dt.now().strftime("%Y-%m-%d %H.%M.%S")
+    # ------ airfoil data
+    airfoil = 'NACA2412'
+    N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 
-# ------ free stream velocity
-re_num = 1e6
-density = 1.225
-viscosity = 1.789e-5
-free_velocity = re_num * viscosity / density
-free_aoa = 0.0
-free_aoa = np.deg2rad(free_aoa)
+    # ------ free stream velocity
+    re_num = 1e6
+    density = 1.225
+    viscosity = 1.789e-5
+    free_velocity = re_num * viscosity / density
+    free_aoa = 0.0
+    free_aoa = np.deg2rad(free_aoa)
 
-# ------ plunging parameters
-pl_amplitude = 0
-pl_frequency = 0
+    # ------ plunging parameters
+    pl_amplitude = 0
+    pl_frequency = 0
 
-# ------ pitching parameters
-pi_amplitude = 0
-pi_frequency = 0
+    # ------ pitching parameters
+    pi_amplitude = 0
+    pi_frequency = 0
 
-# ------ new vortex
-distance = 0.001
-angle = 0
-angle = np.deg2rad(angle)
+    # ------ new vortex
+    distance = 0.001
+    angle = 0
+    angle = np.deg2rad(angle)
 
-# ------ time step
-time_step = 0.005
-current_time = 0.00
-iteration = 10
+    # ------ time step
+    time_step = 0.005
+    current_time = 0.00
+    iteration = 1000
 
-# ----- force file parameters
-Iwvx_pre = 0
-Iwvy_pre = 0
-Iwx_pre = 0
-Iwy_pre = 0
-Ibvx_pre = 0
-Ibvy_pre = 0
+    # ----- force file parameters
+    Iwvx_pre = 0
+    Iwvy_pre = 0
+    Iwx_pre = 0
+    Iwy_pre = 0
+    Ibvx_pre = 0
+    Ibvy_pre = 0
 
-# ------ data store
-circulation_list = np.array([])
-te_vortex_strength = np.array([])
-te_vortex_z = np.array([])
-te_vortex_v = np.array([])
-te_vortex_u = np.array([])
-iterate_time_step = np.array([])
+    # ------ data store
+    circulation_list = np.array([])
+    te_vortex_strength = np.array([])
+    te_vortex_z = np.array([])
+    te_vortex_v = np.array([])
+    te_vortex_u = np.array([])
+    iterate_time_step = np.array([])
 
-# ----- writing file activation
-main_file = True
-force_file = True
-mis_file = False
-xlwrite = True
+    # ----- writing file activation
+    main_file = True
+    force_file = True
+    mis_file = False
+    xlwrite = False
 
-# ----- make directory
-if not os.path.exists('Results'):
-    os.mkdir('Results')
-path_dir = 'Results/'+ctime
-os.mkdir(path_dir)
-# ----- write in a file
-# heading_file = path_dir + '/result_file_' + airfoil + '.txt'
-heading_file = path_dir + '/result_file.txt'
-if main_file:
-    make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle, heading_file)
-
-# heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
-heading_force_file = path_dir + '/force_file.txt'
-if force_file:
-    make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                    time_step, current_time, iteration, distance, angle, heading_force_file)
-
-type_name = 'velocity_on_the_airfoil_'
-# type_name = 'tangential_velocity_'
-# type_name = 'velocity_on_the_airfoil_values_'
-# type_name = 'tangential_velocity_values_'
-# heading_mis_file = path_dir + '/mis_file_' + type_name + airfoil + '.txt'
-heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
-if mis_file:
-    make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                  time_step, current_time, iteration, distance, angle, heading_mis_file, type_name)
-print(airfoil)
-
-# ------ steady state solution
-steady_circulation = steady_state_circulation(free_velocity, free_aoa, trailing_edge_v, center_circle, radius)
-
-# ------ transcient solution
-for iterate in range(iteration):
-    if iterate % 100 == 0:
-        print('Iteration - ' + str(iterate))
-
-    trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
-        initialize_field()
-    circulation, s = calculate_circulation()
-
-    circulation_list = np.append(circulation_list, [circulation])
-    te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
-    te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
-    te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
-    te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
-
-    # update main file
+    # ----- make directory
+    if not os.path.exists('Results'):
+        os.mkdir('Results')
+    path_dir = 'Results/'+ctime
+    os.mkdir(path_dir)
+    # ----- write in a file
+    # heading_file = path_dir + '/result_file_' + airfoil + '.txt'
+    heading_file = path_dir + '/result_file.txt'
     if main_file:
-        update_file(te_vortex_z, iterate, heading_file)
+        make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                  time_step, current_time, iteration, distance, angle, heading_file)
 
-    # - calculate forces
-    Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
-        calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre,
-                        circulation, te_vortex_u, te_vortex_z, te_vortex_strength)
+    # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
+    heading_force_file = path_dir + '/force_file.txt'
     if force_file:
-        update_force_file(iterate, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
-    iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+        make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                        time_step, current_time, iteration, distance, angle, heading_force_file)
 
-    te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z)
-    current_time += time_step
+    type_name = 'velocity_on_the_airfoil_'
+    # type_name = 'tangential_velocity_'
+    # type_name = 'velocity_on_the_airfoil_values_'
+    # type_name = 'tangential_velocity_values_'
+    # heading_mis_file = path_dir + '/mis_file_' + type_name + airfoil + '.txt'
+    heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
+    if mis_file:
+        make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                      time_step, current_time, iteration, distance, angle, heading_mis_file, type_name)
+    print(airfoil)
 
-if main_file:
-    write_steady_circulation(steady_circulation, heading_file)
-    write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
-print('total time ', time.time() - start)
+    # ------ steady state solution
+    steady_circulation = steady_state_circulation(free_velocity, free_aoa, trailing_edge_v, center_circle, radius)
 
-if xlwrite:
-    create_excel_file(path_dir)
+    # ------ transcient solution
+    for iterate in range(iteration):
+        if iterate % 100 == 0:
+            print('Iteration - ' + str(iterate))
+
+        trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
+            initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude,
+                             trailing_edge_z, distance, angle, Gkn, trailing_edge_v, current_time)
+        circulation, s = calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength,
+                                               new_vortex_position_u, te_vortex_u)
+
+        circulation_list = np.append(circulation_list, [circulation])
+        te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
+        te_vortex_z = np.append(te_vortex_z, [new_vortex_position_z])
+        te_vortex_v = np.append(te_vortex_v, [new_vortex_position_v])
+        te_vortex_u = np.append(te_vortex_u, [new_vortex_position_u])
+
+        # update main file
+        if main_file:
+            update_file(te_vortex_z, iterate, heading_file)
+
+        # - calculate forces
+        Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
+            calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre,
+                            circulation, te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle,
+                            density, mis_file, heading_mis_file)
+        if force_file:
+            update_force_file(iterate, aoa, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
+        iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
+
+        te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle,
+                                                              radius, velocity, aoa, circulation, te_vortex_strength,
+                                                              time_step)
+        current_time += time_step
+
+    if main_file:
+        write_steady_circulation(steady_circulation, heading_file)
+        write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
+    print('total time ', time.time() - start)
+
+    if xlwrite:
+        create_excel_file(path_dir)
+
+
+main()
