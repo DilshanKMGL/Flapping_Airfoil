@@ -99,17 +99,17 @@ def update_file(te_vortex_z, iteration, heading):
     file1.close()
 
 
-def update_force_file(iterate, aoa, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading):
-    force_x = Fwx + Fbvx + Fvx
-    force_y = Fwy + Fbvy + Fvy
+def update_force_file(iterate, aoa, Fwx, Fwy, Fbvx, Fbvy, heading):
+    force_x = Fwx + Fbvx
+    force_y = Fwy + Fbvy
     lift = force_y * np.cos(aoa) - force_x * np.sin(aoa)
     drag = force_x * np.cos(aoa) + force_y * np.sin(aoa)
 
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, "a+")
     file1.write(str(iterate) + ' ')  # iteration number
-    file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fvx) + ' ' + str(Fvy) + ' ' + str(Fwx) + ' ' +
-                str(Fwy) + ' ' + str(Fbvx) + ' ' + str(Fbvy) + ' ' + str(lift) + ' ' + str(drag) + '\n')
+    file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fwx) + ' ' + str(Fwy) + ' ' + str(Fbvx) + ' ' +
+                str(Fbvy) + ' ' + str(lift) + ' ' + str(drag) + '\n')
     file1.close()
 
 
@@ -302,14 +302,9 @@ def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle, rad
     return te_vortex_u, te_vortex_v, te_vortex_z
 
 
-def calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
+def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
                     te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density, mis_file,
                     heading_mis_file):
-    # calculate by velocity
-    I0 = velocity * np.exp(1j * aoa) * time_step * iterate
-    Iwvx = I0.imag
-    Iwvy = I0.real
-
     # calculate wake vorticity
     Iwx = sum(te_vortex_z.imag * te_vortex_strength)
     Iwy = -sum(te_vortex_z.real * te_vortex_strength)
@@ -368,29 +363,23 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iw
 
     # force calculation
     if iterate != 0:
-        Fvx = - (Iwvx - Iwvx_pre) / time_step * density
-        Fvy = - (Iwvy - Iwvy_pre) / time_step * density
         Fwx = - (Iwx - Iwx_pre) / time_step * density
         Fwy = - (Iwy - Iwy_pre) / time_step * density
         Fbvx = - (Ibvx - Ibvx_pre) / time_step
         Fbvy = - (Ibvy - Ibvy_pre) / time_step
 
     else:
-        Fvx = 0
-        Fvy = 0
         Fwx = 0
         Fwy = 0
         Fbvx = 0
         Fbvy = 0
 
-    Iwvx_pre = Iwvx
-    Iwvy_pre = Iwvy
     Iwx_pre = Iwx
     Iwy_pre = Iwy
     Ibvx_pre = Ibvx
     Ibvy_pre = Ibvy
 
-    return Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
+    return Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
 
 def steady_state_circulation(velocity, aoa, trailing_edge_v, center_circle, radius):
@@ -438,8 +427,6 @@ def main():
     iteration = 1000
 
     # ----- force file parameters
-    Iwvx_pre = 0
-    Iwvy_pre = 0
     Iwx_pre = 0
     Iwy_pre = 0
     Ibvx_pre = 0
@@ -462,7 +449,7 @@ def main():
     # ----- make directory
     if not os.path.exists('Results'):
         os.mkdir('Results')
-    path_dir = 'Results/'+ctime
+    path_dir = 'Results/' + ctime
     os.mkdir(path_dir)
     # ----- write in a file
     # heading_file = path_dir + '/result_file_' + airfoil + '.txt'
@@ -513,12 +500,13 @@ def main():
             update_file(te_vortex_z, iterate, heading_file)
 
         # - calculate forces
-        Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
-            calcualte_force(iterate, Gkn, velocity, aoa, Iwvx_pre, Iwvy_pre, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre,
-                            circulation, te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle,
-                            density, mis_file, heading_mis_file)
+        Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
+            calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
+                            te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density,
+                            mis_file,
+                            heading_mis_file)
         if force_file:
-            update_force_file(iterate, aoa, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
+            update_force_file(iterate, aoa, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
         iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 
         te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle,
