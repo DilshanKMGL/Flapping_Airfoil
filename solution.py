@@ -2,7 +2,10 @@ import numpy as np
 import time
 from _datetime import datetime as dt
 import os
-import xlsxwriter as xl
+
+from matplotlib import pyplot as plt
+import graph
+import write_files
 
 
 def read_data(heading):
@@ -21,150 +24,6 @@ def read_data(heading):
     u_plane = np.subtract(v_plane, center_circle) / r
 
     return N, r, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane
-
-
-def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle, heading):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, 'w')
-
-    file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('free_velocity\n' + str(free_velocity) + '\n')
-    file1.write('free_aoa\n' + str(np.rad2deg(free_aoa)) + '\n')
-    file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
-    file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
-    file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
-    file1.write('pi_frequency\n' + str(pi_frequency) + '\n')
-    file1.write('time_step\n' + str(time_step) + '\n')
-    file1.write('current_time\n' + str(current_time) + '\n')
-    file1.write('iteration\n' + str(iteration) + '\n')
-    file1.write('distance\n' + str(distance) + '\n')
-    file1.write('angle\n' + str(angle) + '\n')
-    file1.write('te_vortex_z' + '\n')
-    file1.write('First value is the iteration number' + '\n')
-    file1.close()
-
-
-def make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                    time_step, current_time, iteration, distance, angle, heading):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, 'w')
-
-    file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('free_velocity\n' + str(free_velocity) + '\n')
-    file1.write('free_aoa\n' + str(free_aoa) + '\n')
-    file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
-    file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
-    file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
-    file1.write('pi_frequency\n' + str(pi_frequency) + '\n')
-    file1.write('time_step\n' + str(time_step) + '\n')
-    file1.write('current_time\n' + str(current_time) + '\n')
-    file1.write('iteration\n' + str(iteration) + '\n')
-    file1.write('distance\n' + str(distance) + '\n')
-    file1.write('angle\n' + str(angle) + '\n')
-    file1.write('First value is the iteration number' + '\n')
-    file1.write('Force values - x and y, Fvx, Fvy, Fwx, Fwy, Fbvx, Fbvy, lift, drag\n')
-    file1.close()
-
-
-def make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                  time_step, current_time, iteration, distance, angle, heading, type_name):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, 'w')
-
-    file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('free_velocity\n' + str(free_velocity) + '\n')
-    file1.write('free_aoa\n' + str(free_aoa) + '\n')
-    file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
-    file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
-    file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
-    file1.write('pi_frequency\n' + str(pi_frequency) + '\n')
-    file1.write('time_step\n' + str(time_step) + '\n')
-    file1.write('current_time\n' + str(current_time) + '\n')
-    file1.write('iteration\n' + str(iteration) + '\n')
-    file1.write('distance\n' + str(distance) + '\n')
-    file1.write('angle\n' + str(angle) + '\n')
-    file1.write('First value is the iteration number' + '\n')
-    file1.write(type_name[:-1] + '\n')
-    file1.close()
-
-
-def update_file(te_vortex_z, iteration, heading):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, "a+")
-    file1.write(str(iteration) + ' ')
-    for value in te_vortex_z:
-        file1.write(str(value) + ' ')
-    file1.write('\n')
-    file1.close()
-
-
-def update_force_file(iterate, aoa, Fwx, Fwy, Fbvx, Fbvy, heading):
-    force_x = Fwx + Fbvx
-    force_y = Fwy + Fbvy
-    lift = force_y * np.cos(aoa) - force_x * np.sin(aoa)
-    drag = force_x * np.cos(aoa) + force_y * np.sin(aoa)
-
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, "a+")
-    file1.write(str(iterate) + ' ')  # iteration number
-    file1.write(str(force_x) + ' ' + str(force_y) + ' ' + str(Fwx) + ' ' + str(Fwy) + ' ' + str(Fbvx) + ' ' +
-                str(Fbvy) + ' ' + str(lift) + ' ' + str(drag) + '\n')
-    file1.close()
-
-
-def update_mis_file(iteration, para1, heading, value):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, "a+")
-    file1.write(str(iteration) + ' ')
-    if len(list(para1)) > 1:
-        for index in range(len(para1)):
-            if value == 0:
-                # wrtite complex numbers directly
-                file1.write(str(para1[index]) + ' ')
-            elif value == 1:
-                # write real and imaginary parts seperately
-                file1.write(str(para1[index].real) + ' ' + str(para1[index].imag) + ' ')
-        file1.write('\n')
-    else:
-        file1.write(str(para1) + '\n')
-    file1.close()
-
-
-def write_steady_circulation(steady_circulation, steady_lift, steady_cl, heading):
-    file1 = open(heading, "a+")
-    file1.write('steasy state circulation\n' + str(steady_circulation) + '\n')
-    file1.write('steasy state lift\n' + str(steady_lift) + '\n')
-    file1.write('steasy state cl\n' + str(steady_cl) + '\n')
-
-
-def write_array(circulation, te_vortex_strength, iterate_time_step, heading):
-    # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
-    file1 = open(heading, "a+")
-    file1.write('circulation\n')
-    for value in circulation:
-        file1.write(str(value) + ' ')
-    file1.write('\n')
-    file1.write('te_vortex_strength\n')
-    for value in te_vortex_strength:
-        file1.write(str(value) + ' ')
-    file1.write('\n')
-    file1.write('iteration step time\n')
-    for value in iterate_time_step:
-        file1.write(str(value) + ' ')
-    file1.write('\n')
-    file1.close()
-
-
-def create_excel_file(path_dir):
-    force_file = open(path_dir + '/force_file.txt')
-    result_file = open(path_dir + '/result_file.txt')
-    force_line = force_file.readlines()
-    result_line = result_file.readlines()
-    airfoil_name = force_line[1][:-1]
-    workbook = xl.Workbook(path_dir + '/Data.xlsx')
-    worksheet = workbook.add_worksheet(airfoil_name)
-    workbook.close()
 
 
 def newton(x0, epsilon, max_iter, Gkn, radius, center_circle, equal_val):
@@ -361,7 +220,7 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibv
         # tangential_velocity = (dwdv - velocity * np.exp(-1j * aoa) * dzdv) * np.exp(1j * angle)
         # update_mis_file(iterate, tangential_velocity, heading_mis_file)
         velocity_air = dwdv / dzdv
-        update_mis_file(iterate, velocity_air, heading_mis_file, 1)
+        write_files.update_mis_file(iterate, velocity_air, heading_mis_file, 1)
 
     # force calculation
     if iterate != 0:
@@ -381,7 +240,16 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibv
     Ibvx_pre = Ibvx
     Ibvy_pre = Ibvy
 
-    return Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
+    force_x = Fwx + Fbvx
+    force_y = Fwy + Fbvy
+    lift = force_y * np.cos(aoa) - force_x * np.sin(aoa)
+    drag = force_x * np.cos(aoa) + force_y * np.sin(aoa)
+
+    denom = density * np.power(velocity, 2)
+    cl = 2 * lift / denom
+    cd = 2 * drag / denom
+
+    return Fwx, Fwy, Fbvx, Fbvy, force_x, force_y, lift, drag, cl, cd, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre
 
 
 def steady_state_circulation(velocity, aoa, trailing_edge_v, center_circle, radius):
@@ -440,6 +308,8 @@ def main():
     te_vortex_z = np.array([])
     te_vortex_v = np.array([])
     te_vortex_u = np.array([])
+    cl_array = np.array([])
+    cd_array = np.array([])
     iterate_time_step = np.array([])
 
     # ----- writing file activation and conditions
@@ -449,29 +319,52 @@ def main():
     mis_file = False
     xlwrite = False
 
-    plot_graph = True
-    # graph_type
-    graph_itr_time = False  # iteration - time
-    grapgh_lift_time = False  # lift force - time
-    grapgh_drag_time = False  # drag force - time
+    # plot_graph_condition = True
+    time_delay = time_step / 100  # time delay between two graph update intervals
+    plot_all_4 = False
+    nrow = 0
+    ncol = 0
+    heading_list = []
+    x_axis_title = []
+    y_axis_title = []
+    if plot_all_4:
+        nrow = 2
+        ncol = 2
+
+        heading_list.append('Iteration vs. Time')
+        x_axis_title.append('Iteration')
+        y_axis_title.append('Time (ms)')
+
+        heading_list.append('Cl vs. Time')
+        y_axis_title.append('Cl')
+        x_axis_title.append('Time (s)')
+
+        heading_list.append('Cd vs. Time')
+        y_axis_title.append('Cd')
+        x_axis_title.append('Time (s)')
+    fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
+
+    cl_time_grapgh = True
+    cd_time_grapgh = True
 
     # ----- make directory
     if not os.path.exists('Results'):
         os.mkdir('Results')
     path_dir = 'Results/' + ctime
     os.mkdir(path_dir)
+
     # ----- write in a file
-    # heading_file = path_dir + '/result_file_' + airfoil + '.txt'
     heading_file = path_dir + '/result_file.txt'
     if main_file:
-        make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                  time_step, current_time, iteration, distance, angle, heading_file)
+        write_files.make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+                              time_step, current_time, iteration, distance, angle, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
     heading_force_file = path_dir + '/force_file.txt'
     if force_file:
-        make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                        time_step, current_time, iteration, distance, angle, heading_force_file)
+        write_files.make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+                                    pi_frequency, time_step, current_time, iteration, distance, angle,
+                                    heading_force_file)
 
     type_name = 'velocity_on_the_airfoil_'
     # type_name = 'tangential_velocity_'
@@ -480,14 +373,15 @@ def main():
     # heading_mis_file = path_dir + '/mis_file_' + type_name + airfoil + '.txt'
     heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
     if mis_file:
-        make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                      time_step, current_time, iteration, distance, angle, heading_mis_file, type_name)
+        write_files.make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+                                  pi_frequency, time_step, current_time, iteration, distance, angle, heading_mis_file,
+                                  type_name)
     print(airfoil)
 
     # ------ steady state solution
     steady_circulation = steady_state_circulation(free_velocity, free_aoa, trailing_edge_v, center_circle, radius)
-    steady_cl = 2 * steady_circulation / free_velocity
-    steady_lift = density * free_velocity * steady_circulation
+    steady_cl = -2 * steady_circulation / free_velocity
+    steady_lift = -density * free_velocity * steady_circulation
     # ------ transcient solution
     for iterate in range(iteration):
         if iterate % 100 == 0:
@@ -507,18 +401,54 @@ def main():
 
         # update main file
         if main_file:
-            update_file(te_vortex_z, iterate, heading_file)
+            write_files.update_file(te_vortex_z, iterate, heading_file)
 
         # - calculate forces
-        Fwx, Fwy, Fbvx, Fbvy, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
+        Fwx, Fwy, Fbvx, Fbvy, force_x, force_y, lift, drag, cl, cd, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
             calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
                             te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density,
                             mis_file,
                             heading_mis_file)
+
+        cl_array = np.append(cl_array, [cl])
+        cd_array = np.append(cd_array, [cd])
+        if iterate == 1:
+            cl_array[0] = cl_array[1]
+            cd_array[0] = cd_array[1]
+
         if force_file:
-            update_force_file(iterate, aoa, Fwx, Fwy, Fbvx, Fbvy, heading_force_file)
+            write_files.update_force_file(iterate, Fwx, Fwy, Fbvx, Fbvy, force_x, force_y, lift, drag, cl, cd,
+                                          heading_force_file)
         iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 
+        # plot grapgh
+        islast = False
+        if iterate == iteration - 1:
+            islast = True
+
+        x_limit_low = -0.2
+        x_limit_high = iteration * time_step + 1
+        iterate_array = np.arange(0, iterate + 1, 1)
+        time_cal = time_step * iterate_array
+        steady_value_list = steady_cl * np.ones(iterate + 1)
+        if plot_all_4:
+            x_data = []
+            y_data = []
+
+            x_data.append(iterate_array)
+            y_data.append(iterate_time_step)
+            x_data.append(time_cal)
+            y_data.append(cl_array)
+            x_data.append(time_cal)
+            y_data.append(cd_array)
+
+            graph.plot_graph_all(axs, heading_list, x_axis_title, y_axis_title, x_data, y_data, time_delay, islast,
+                                 steady_value_list, x_limit_high, x_limit_low)
+
+        if cl_time_grapgh:
+            graph.cl_grapgh_plot(time_cal, cl_array, time_delay, islast, x_limit_low, x_limit_high, steady_value_list)
+        if cd_time_grapgh:
+            graph.cd_grapgh_plot(time_cal, cd_array, time_delay, islast, x_limit_low, x_limit_high)
         te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle,
                                                               radius, velocity, aoa, circulation, te_vortex_strength,
                                                               time_step)
@@ -526,12 +456,12 @@ def main():
 
     if main_file:
         if not plungin_on:
-            write_steady_circulation(steady_circulation, steady_lift, steady_cl, heading_file)
-        write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
+            write_files.write_steady_circulation(steady_circulation, steady_lift, steady_cl, heading_file)
+        write_files.write_array(circulation_list, te_vortex_strength, iterate_time_step, heading_file)
     print('total time ', time.time() - start)
 
     if xlwrite:
-        create_excel_file(path_dir)
+        write_files.create_excel_file(path_dir)
 
 
 main()

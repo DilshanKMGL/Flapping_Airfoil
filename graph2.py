@@ -26,8 +26,9 @@ def main(x1, y1, x2, y2, pause_time, islast):
     plt.pause(pause_time)
     if islast:
         plt.show()
-
-
+iterate = 10
+a = list(np.arange(0,iterate, 1))
+print(a)
 '''
 plot parameters
 plt.plot(dev_x, dev_y, label='plot 1', linewidth=1)
