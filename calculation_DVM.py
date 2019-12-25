@@ -8,6 +8,7 @@ import graph
 import write_files
 
 
+
 def read_data(heading):
     heading = 'Airfoil_data/' + str(heading) + '_data.txt'
     file1 = open(heading, 'r')

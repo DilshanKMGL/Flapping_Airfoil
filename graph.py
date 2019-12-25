@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
+
 def plot_graph_all(axs, heading_list, x_axis_title, y_axis_title, x_data, y_data, pause_time, islast, steady_state_cl,
                    x_limit_high, x_limit_low, path_to_save, plunging_on):
     # iteration vs time

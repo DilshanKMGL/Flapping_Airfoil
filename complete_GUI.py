@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 # import write_files
 
 
+
 def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle, heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
