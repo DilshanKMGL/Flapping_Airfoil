@@ -201,9 +201,9 @@ def cl_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, steady
     plt.ylabel('Cl')
     plt.title('Cl vs time')
     plt.xlim(x_limit_low, x_limit_high)
-    plt.plot(x1, y1, color='R', label='transient cl', linewidth=1)
+    plt.plot(x1, y1, color='r', label='transient cl', linewidth=1)
     if not plunging_on:
-        plt.plot(x1, steady, color='B', label='steady state cl', linewidth=1)
+        plt.plot(x1, steady, color='b', label='steady state cl', linewidth=1)
     plt.grid(True)
     plt.tight_layout()
     plt.pause(pause_time)
@@ -220,7 +220,7 @@ def cd_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_t
     plt.ylabel('Cd')
     plt.title('Cd vs time')
     plt.xlim(x_limit_low, x_limit_high)
-    plt.plot(x1, y1, color='R', linewidth=1)
+    plt.plot(x1, y1, color='r', linewidth=1)
     plt.grid(True, which='both')
     plt.tight_layout()
     plt.pause(pause_time)
@@ -237,7 +237,7 @@ def plunging_distance_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high
     plt.ylabel('distance')
     plt.title('Plunging wing movement')
     plt.xlim(x_limit_low, x_limit_high)
-    plt.plot(x1, y1, color='R', linewidth=1)
+    plt.plot(x1, y1, color='r', linewidth=1)
     plt.grid(True, which='both')
     plt.tight_layout()
     plt.pause(pause_time)
@@ -553,11 +553,14 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     free_aoa = np.deg2rad(free_aoa)
 
     # ------ plunging parameters
-    plunging_on = False
+
     pl_amplitude = pl_amplitude1
     pl_frequency = pl_frequency1
     strauhl_number = 2 * np.pi * pl_amplitude * pl_frequency / free_velocity
     print('strauhl number', strauhl_number)
+    plunging_on = True
+    if pl_amplitude == 0 or pl_frequency == 0:
+        plunging_on = False
 
     # ------ pitching parameters
     pi_amplitude = 0
@@ -636,14 +639,14 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     heading_file = path_dir + '/result_file.txt'
     if main_file:
         make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                              time_step, current_time, iteration, distance, angle, heading_file)
+                  time_step, current_time, iteration, distance, angle, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
     heading_force_file = path_dir + '/force_file.txt'
     if force_file:
         make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
-                                    pi_frequency, time_step, current_time, iteration, distance, angle,
-                                    heading_force_file)
+                        pi_frequency, time_step, current_time, iteration, distance, angle,
+                        heading_force_file)
 
     type_name = 'velocity_on_the_airfoil_'
     # type_name = 'tangential_velocity_'
@@ -653,8 +656,8 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
     if mis_file:
         make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
-                                  pi_frequency, time_step, current_time, iteration, distance, angle, heading_mis_file,
-                                  type_name)
+                      pi_frequency, time_step, current_time, iteration, distance, angle, heading_mis_file,
+                      type_name)
     print(airfoil)
 
     # ------ steady state solution
@@ -697,7 +700,7 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
 
         if force_file:
             update_force_file(iterate, Fwx, Fwy, Fbvx, Fbvy, force_x, force_y, lift, drag, cl, cd,
-                                          heading_force_file)
+                              heading_force_file)
         iterate_time_step = np.append(iterate_time_step, [time.time() - iterate_time])
 
         # plot grapgh
@@ -722,18 +725,18 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
             y_data.append(cd_array)
 
             plot_graph_all(axs, heading_list, x_axis_title, y_axis_title, x_data, y_data, time_delay, islast,
-                                 steady_value_list, x_limit_high, x_limit_low, path_dir, plunging_on)
+                           steady_value_list, x_limit_high, x_limit_low, path_dir, plunging_on)
 
         if cl_time_grapgh:
             cl_grapgh_plot(time_cal, cl_array, time_delay, islast, x_limit_low, x_limit_high, steady_value_list,
-                                 path_dir, plunging_on)
+                           path_dir, plunging_on)
         if cd_time_grapgh:
             cd_grapgh_plot(time_cal, cd_array, time_delay, islast, x_limit_low, x_limit_high, path_dir)
         if plunging_on and plunging_dis_graph:
             plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
             plunging_dis_array = np.append(plunging_dis_array, [plunging_dis.imag])
             plunging_distance_plot(time_cal, plunging_dis_array, time_delay, islast, x_limit_low, x_limit_high,
-                                         path_dir)
+                                   path_dir)
         if vortex_movement:
             plot_airfoil(z_plane, te_vortex_z, te_vortex_strength, free_aoa, time_delay, islast)
         te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle,
@@ -767,7 +770,7 @@ def button_command():
 
     result_file = float(chk_state1.get())
     force_file = float(chk_state2.get())
-    excel_file = float(chk_state3.get())
+    excel_file = False  # float(chk_state3.get())
 
     grph_vortex_move = float(chk_state4.get())
     grph_clt = float(chk_state5.get())
@@ -775,8 +778,8 @@ def button_command():
     grph_pld = float(chk_state7.get())
 
     main(airfoil, re_num, density, viscosity, free_aoa, pl_amplitude, pl_frequency, time_step, iteration,
-                   new_vor_distance, new_vor_angle, result_file, force_file, excel_file, grph_vortex_move, grph_clt,
-                   grph_cdt, grph_pld)
+         new_vor_distance, new_vor_angle, result_file, force_file, excel_file, grph_vortex_move, grph_clt,
+         grph_cdt, grph_pld)
 
 
 def exit_command():
@@ -896,8 +899,8 @@ checkbtn2 = Checkbutton(window, text='Force calculation file', var=chk_state2)
 checkbtn2.grid(row=3, column=4, sticky=W)
 chk_state3 = BooleanVar()
 chk_state3.set(False)
-checkbtn3 = Checkbutton(window, text='Excel file', var=chk_state3)
-checkbtn3.grid(row=4, column=4, sticky=W)
+# checkbtn3 = Checkbutton(window, text='Excel file', var=chk_state3)
+# checkbtn3.grid(row=4, column=4, sticky=W)
 
 label18 = Label(window, text='Graph plot', font=('Arial Black', 10), width=10, anchor=W)
 label18.grid(row=5, column=4, sticky=W)
@@ -907,11 +910,11 @@ chk_state4.set(True)
 checkbtn4 = Checkbutton(window, text='Vortex movement', var=chk_state4)
 checkbtn4.grid(row=6, column=4, sticky=W)
 chk_state5 = BooleanVar()
-chk_state5.set(True)
+chk_state5.set(False)
 checkbtn5 = Checkbutton(window, text='Cl vs time', var=chk_state5)
 checkbtn5.grid(row=7, column=4, sticky=W)
 chk_state6 = BooleanVar()
-chk_state6.set(True)
+chk_state6.set(False)
 checkbtn6 = Checkbutton(window, text='Cd vs time', var=chk_state6)
 checkbtn6.grid(row=8, column=4, sticky=W)
 chk_state7 = BooleanVar()
@@ -921,9 +924,9 @@ checkbtn7.grid(row=9, column=4, sticky=W)
 
 button1 = Button(window, text='Calculate', command=button_command)
 button1.grid(row=17, column=4, sticky=E)
-# button2 = Button(window, text='Stop', command=exit_command)
-# button2.grid(row=17, column=4, sticky=E)
+button2 = Button(window, text='Stop', command=exit_command)
+button2.grid(row=18, column=4, sticky=E)
 
-window.geometry('530x410')  # windwo size customization
+window.geometry('530x430')  # windwo size customization
 window.resizable(0, 0)
 window.mainloop()
