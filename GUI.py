@@ -3,7 +3,6 @@ from tkinter.ttk import *
 import calculation_DVM as dmv_cal
 
 
-
 def button_command():
     # solution.main()
     airfoil = combo.get()

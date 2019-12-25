@@ -2,7 +2,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-
 def plot_graph_all(axs, heading_list, x_axis_title, y_axis_title, x_data, y_data, pause_time, islast, steady_state_cl,
                    x_limit_high, x_limit_low, path_to_save, plunging_on):
     # iteration vs time
@@ -55,7 +54,7 @@ def cl_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, steady
     plt.xlim(x_limit_low, x_limit_high)
     plt.plot(x1, y1, color='r', label='transient cl', linewidth=1)
     if not plunging_on:
-        plt.plot(x1, steady, color='b', label='steady state cl',linewidth=1)
+        plt.plot(x1, steady, color='b', label='steady state cl', linewidth=1)
     plt.grid(True)
     plt.tight_layout()
     plt.pause(pause_time)

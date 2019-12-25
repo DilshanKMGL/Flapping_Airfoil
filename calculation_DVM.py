@@ -8,7 +8,6 @@ import graph
 import write_files
 
 
-
 def read_data(heading):
     heading = 'Airfoil_data/' + str(heading) + '_data.txt'
     file1 = open(heading, 'r')
@@ -286,7 +285,7 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     # ------ plunging parameters
     pl_amplitude = pl_amplitude1
     pl_frequency = pl_frequency1
-    strauhl_number = 2*np.pi*pl_amplitude*pl_frequency/free_velocity
+    strauhl_number = 2 * np.pi * pl_amplitude * pl_frequency / free_velocity
     print('strauhl number', strauhl_number)
     plunging_on = True
     if pl_amplitude == 0 or pl_frequency == 0:
@@ -437,8 +436,8 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
         if iterate == iteration - 1:
             islast = True
 
-        x_limit_low = -time_step*2
-        x_limit_high = iteration * time_step + time_step*2
+        x_limit_low = -time_step * 2
+        x_limit_high = iteration * time_step + time_step * 2
         iterate_array = np.arange(0, iterate + 1, 1)
         time_cal = time_step * iterate_array
         steady_value_list = steady_cl * np.ones(iterate + 1)
@@ -481,4 +480,3 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
 
     if xlwrite:
         write_files.create_excel_file(path_dir)
-
