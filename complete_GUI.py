@@ -602,27 +602,10 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     # plot_graph_condition = True
     time_delay = time_step / 100  # time delay between two graph update intervals
     plot_all_4 = False
-    nrow = 0
-    ncol = 0
+
     heading_list = []
     x_axis_title = []
     y_axis_title = []
-    if plot_all_4:
-        nrow = 2
-        ncol = 2
-
-        heading_list.append('Iteration vs. Time')
-        x_axis_title.append('Iteration')
-        y_axis_title.append('Time (ms)')
-
-        heading_list.append('Cl vs. Time')
-        y_axis_title.append('Cl')
-        x_axis_title.append('Time (s)')
-
-        heading_list.append('Cd vs. Time')
-        y_axis_title.append('Cd')
-        x_axis_title.append('Time (s)')
-    fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
 
     vortex_movement = grph_vortex_move1
     cl_time_grapgh = grph_clt1
@@ -714,6 +697,23 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
         time_cal = time_step * iterate_array
         steady_value_list = steady_cl * np.ones(iterate + 1)
         if plot_all_4:
+            nrow = 2
+            ncol = 2
+
+            heading_list.append('Iteration vs. Time')
+            x_axis_title.append('Iteration')
+            y_axis_title.append('Time (ms)')
+
+            heading_list.append('Cl vs. Time')
+            y_axis_title.append('Cl')
+            x_axis_title.append('Time (s)')
+
+            heading_list.append('Cd vs. Time')
+            y_axis_title.append('Cd')
+            x_axis_title.append('Time (s)')
+
+            fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
+
             x_data = []
             y_data = []
 
