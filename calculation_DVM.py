@@ -348,8 +348,8 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     # ----- write in a file
     heading_file = path_dir + '/result_file.txt'
     if main_file:
-        write_files.make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                              time_step, current_time, iteration, distance, angle, heading_file)
+        write_files.make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+                              pi_frequency, time_step, current_time, iteration, distance, angle, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
     heading_force_file = path_dir + '/force_file.txt'

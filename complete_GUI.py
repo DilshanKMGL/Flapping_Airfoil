@@ -13,12 +13,13 @@ from matplotlib import pyplot as plt
 # import write_files
 
 
-def make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+def make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
               time_step, current_time, iteration, distance, angle, heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
+    file1.write('Reynolds number\n' + str(re_num) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
     file1.write('free_aoa\n' + str(np.rad2deg(free_aoa)) + '\n')
     file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
@@ -621,7 +622,7 @@ def main(airfoil1, re_num1, density1, viscosity1, free_aoa1, pl_amplitude1, pl_f
     # ----- write in a file
     heading_file = path_dir + '/result_file.txt'
     if main_file:
-        make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+        make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
                   time_step, current_time, iteration, distance, angle, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'

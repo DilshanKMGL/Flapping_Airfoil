@@ -66,8 +66,9 @@ def initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequenc
 
     # ------ calculate plunging parameters
     plunging_vel = 0
+    plunging_dis = 0
     if plunging_on:
-        # plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+        plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
         plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
 
     # --- calculate velocity
@@ -84,7 +85,8 @@ def initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequenc
     search_point = center_circle + radius
     new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
     new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
-    return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u
+    return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u, \
+           plunging_dis, plunging_vel
 
 
 def calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength, new_vortex_position_u,
@@ -168,7 +170,6 @@ def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle, rad
 def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
                     te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density, mis_file,
                     heading_mis_file):
-
     # calculate wake vorticity
     Iwx = sum(te_vortex_z.imag * te_vortex_strength)
     Iwy = -sum(te_vortex_z.real * te_vortex_strength)
@@ -270,24 +271,25 @@ def main():
     iterate_time = start
     ctime = dt.now().strftime("%Y-%m-%d %H.%M.%S")
     # ------ airfoil data
-    airfoil = 'NACA2412'
+    airfoil = 'NACA0012'
     N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 
     # ------ free stream velocity
-    re_num = 1e6
+    re_num = 7e5
     density = 1.225
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
-    free_aoa = 0.0
+    free_aoa = 4.0
     free_aoa = np.deg2rad(free_aoa)
 
     # ------ plunging parameters
-    plunging_on = False
-    pl_amplitude = 0.5
-    pl_frequency = 7
-    strauhl_number = 2*np.pi*pl_amplitude*pl_frequency/free_velocity
+    pl_amplitude = 1.0
+    pl_frequency = 5.0
+    strauhl_number = 2 * np.pi * pl_amplitude * pl_frequency / free_velocity
     print('strauhl number', strauhl_number)
-
+    plunging_on = True
+    if pl_frequency == 0.0 or pl_amplitude == 0.0:
+        plunging_on = False
     # ------ pitching parameters
     pi_amplitude = 0
     pi_frequency = 0
@@ -351,9 +353,9 @@ def main():
     fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
 
     vortex_movement = False
-    cl_time_grapgh = True
+    cl_time_grapgh = False
     cd_time_grapgh = False
-    plunging_dis_graph = False
+    plunging_dis_graph = True
 
     # ----- make directory
     if not os.path.exists('Results'):
@@ -364,13 +366,13 @@ def main():
     # ----- write in a file
     heading_file = path_dir + '/result_file.txt'
     if main_file:
-        write_files.make_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                              time_step, current_time, iteration, distance, angle, heading_file)
+        write_files.make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+                              pi_frequency, time_step, current_time, iteration, distance, angle, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
     heading_force_file = path_dir + '/force_file.txt'
     if force_file:
-        write_files.make_force_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+        write_files.make_force_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
                                     pi_frequency, time_step, current_time, iteration, distance, angle,
                                     heading_force_file)
 
@@ -381,7 +383,7 @@ def main():
     # heading_mis_file = path_dir + '/mis_file_' + type_name + airfoil + '.txt'
     heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
     if mis_file:
-        write_files.make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+        write_files.make_mis_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
                                   pi_frequency, time_step, current_time, iteration, distance, angle, heading_mis_file,
                                   type_name)
     print(airfoil)
@@ -395,9 +397,10 @@ def main():
         if iterate % 100 == 0:
             print('Iteration - ' + str(iterate))
 
-        trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u = \
-            initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude,
-                             trailing_edge_z, distance, angle, Gkn, trailing_edge_v, current_time, plunging_on)
+        trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u, \
+        plunging_dis, plunging_vel = initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency,
+                                                      pl_amplitude, trailing_edge_z, distance, angle, Gkn,
+                                                      trailing_edge_v, current_time, plunging_on)
         circulation, s = calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength,
                                                new_vortex_position_u, te_vortex_u)
 
@@ -415,8 +418,7 @@ def main():
         Fwx, Fwy, Fbvx, Fbvy, force_x, force_y, lift, drag, cl, cd, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre = \
             calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibvy_pre, circulation,
                             te_vortex_u, te_vortex_z, te_vortex_strength, time_step, radius, center_circle, density,
-                            mis_file,
-                            heading_mis_file)
+                            mis_file, heading_mis_file)
 
         cl_array = np.append(cl_array, [cl])
         cd_array = np.append(cd_array, [cd])
@@ -434,8 +436,8 @@ def main():
         if iterate == iteration - 1:
             islast = True
 
-        x_limit_low = -time_step*2
-        x_limit_high = iteration * time_step + time_step*2
+        x_limit_low = -time_step * 2
+        x_limit_high = iteration * time_step + time_step * 2
         iterate_array = np.arange(0, iterate + 1, 1)
         time_cal = time_step * iterate_array
         steady_value_list = steady_cl * np.ones(iterate + 1)
