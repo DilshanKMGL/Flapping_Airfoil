@@ -45,7 +45,7 @@ def plot_graph_all(axs, heading_list, x_axis_title, y_axis_title, x_data, y_data
         plt.show()
 
 
-def cl_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, steady, path_to_save, plunging_on):
+def cl_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, steady, path_to_save, plunging_on, show):
     plt.figure(1)
     plt.clf()
     plt.xlabel('Time (s)')
@@ -54,17 +54,20 @@ def cl_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, steady
     plt.xlim(x_limit_low, x_limit_high)
     plt.plot(x1, y1, color='r', label='transient cl', linewidth=1)
     if not plunging_on:
-        plt.plot(x1, steady, color='b', label='steady state cl', linewidth=1)
+        plt.plot(x1, steady, color='b', label='steady state cl',linewidth=1)
     plt.grid(True)
     plt.tight_layout()
     plt.pause(pause_time)
     plt.legend()
     if islast:
         plt.savefig(path_to_save + '/Cl vs time.png')
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
 
-def cd_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_to_save):
+def cd_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_to_save, show):
     plt.figure(2)
     plt.clf()
     plt.xlabel('Time (s)')
@@ -78,27 +81,33 @@ def cd_grapgh_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_t
 
     if islast:
         plt.savefig(path_to_save + '/Cd vs time.png')
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
 
-def plunging_distance_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_to_save):
+def plunging_distance_plot(x1, y1, pause_time, islast, x_limit_low, x_limit_high, path_to_save, show):
     plt.figure(3)
     plt.clf()
     plt.xlabel('Time (s)')
     plt.ylabel('distance')
     plt.title('Plunging wing movement')
     plt.xlim(x_limit_low, x_limit_high)
-    plt.plot(x1, y1, color='R', linewidth=1)
+    plt.plot(x1, y1, color='r', linewidth=1)
     plt.grid(True, which='both')
     plt.tight_layout()
     plt.pause(pause_time)
 
     if islast:
         plt.savefig(path_to_save + '/plunging movement.png')
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
 
-def plot_airfoil(airfoil, vortex, strength, aoa, pause_time, islast):  # free stream initial aoa should there
+def plot_airfoil(airfoil, vortex, strength, aoa, pause_time, islast, path_to_save, show):  # free stream initial aoa should there
     aoa = np.exp(-1j * aoa)
     vortex_pos = np.array([])
     vortex_neg = np.array([])
@@ -125,8 +134,11 @@ def plot_airfoil(airfoil, vortex, strength, aoa, pause_time, islast):  # free st
     plt.tight_layout()
     plt.pause(pause_time)
     if islast:
-        # plt.savefig(path_to_save + '/plunging movement.png')
-        plt.show()
+        plt.savefig(path_to_save + '/plunging movement.png')
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
 
 '''

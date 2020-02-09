@@ -59,36 +59,6 @@ def diag_remove(p):
     return p
 
 
-def initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude, trailing_edge_z,
-                     distance, angle, Gkn, trailing_edge_v, current_time, plunging_on):
-    # ------ calculate trailing edge position
-    trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-
-    # ------ calculate plunging parameters
-    plunging_vel = 0
-    plunging_dis = 0
-    if plunging_on:
-        plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
-        plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
-
-    # --- calculate velocity
-    velocity = np.abs(free_velocity + plunging_vel)
-    aoa = free_aoa + np.angle(free_velocity + plunging_vel)
-
-    # --- calculate velocity
-    # velocity = free_velocity
-    # aoa = free_aoa
-
-    # ------ calculate new vortex position
-    new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
-    new_vortex_position_z = complex(new_vortex_position_z)
-    search_point = center_circle + radius
-    new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle, new_vortex_position_z))
-    new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
-    return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u, \
-           plunging_dis, plunging_vel
-
-
 def calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength, new_vortex_position_u,
                           te_vortex_u):
     # ------ create function to calculate circulation
@@ -111,6 +81,76 @@ def calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_stre
     circulation = complex((s * d3 - d1 - d4) / (d2 - d3)).real
 
     return circulation, s
+
+
+def initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude, trailing_edge_z,
+                     distance, angle, Gkn, trailing_edge_v, current_time, plunging_on, te_vortex_strength, te_vortex_u,
+                     time_step):
+    # ------ calculate trailing edge position
+    trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
+
+    # ------ calculate plunging parameters
+    plunging_vel = 0
+    if plunging_on:
+        # plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
+        plunging_vel = 2 * 1j * pl_amplitude * np.pi * pl_frequency * np.cos(2 * np.pi * pl_frequency * current_time)
+
+    # --- calculate velocity
+    velocity = np.abs(free_velocity + plunging_vel)
+    aoa = free_aoa + np.angle(free_velocity + plunging_vel)
+
+    # ------ calculate new vortex position
+    new_vortex_position_z = trailing_edge_z + distance * pow(np.e, -1j * angle)
+    new_vortex_position_z = complex(new_vortex_position_z)
+
+    iteration_number = 1
+    while True:
+        # print(iteration_number)
+        iteration_number += 1
+
+        search_point = center_circle + radius
+        new_vortex_position_v = complex(newton(search_point, 1e-8, 50, Gkn, radius, center_circle,
+                                               new_vortex_position_z))
+        new_vortex_position_u = complex((new_vortex_position_v - center_circle) / radius)
+
+        circulation_new, s = calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength,
+                                                   new_vortex_position_u, te_vortex_u)
+
+        req_point_z = np.round(trailing_edge_z + (new_vortex_position_z - trailing_edge_z) / 2.0, 7)
+        req_point_v = newton(new_vortex_position_v, 1e-8, 50, Gkn, radius, center_circle, req_point_z)
+        req_point_u = (req_point_v - center_circle) / radius
+
+        power = np.arange(1, len(Gkn) + 1)
+        dzdu = radius - sum(Gkn * power / req_point_u ** (power + 1))
+
+        # velocity
+        d1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / req_point_u ** 2)
+        # circulation
+        d2 = -1j * circulation_new / (2 * np.pi * req_point_u)
+
+        p1 = 1.0 / (req_point_u - te_vortex_u)
+        p2 = 1.0 / (req_point_u * (1.0 - req_point_u * np.conjugate(te_vortex_u)))
+        d4 = -1j * te_vortex_strength / (2 * np.pi) * (p1 + p2)
+        d4 = sum(d4)
+
+        dwdu = d1 + d2 + d4
+        velocity_point = np.conj(dwdu / dzdu)
+        distance_point = trailing_edge_z + velocity_point * time_step
+        error_real = abs(distance_point.real - new_vortex_position_z.real)
+        error_imag = abs(distance_point.imag - new_vortex_position_z.imag)
+
+        error_margin = 1e-2
+        if error_real > error_margin or error_imag > error_margin:
+            new_point = complex((distance_point.real + new_vortex_position_z.real) / 2,
+                                (distance_point.imag + new_vortex_position_z.imag) / 2)
+            new_vortex_position_z = new_point
+
+        else:
+            # print(new_vortex_position_z)
+            break
+
+    return trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u, \
+           circulation_new, s
 
 
 def move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle, radius, velocity, aoa, circulation,
@@ -258,51 +298,56 @@ def calcualte_force(iterate, Gkn, velocity, aoa, Iwx_pre, Iwy_pre, Ibvx_pre, Ibv
 
 def steady_state_circulation(velocity, aoa, trailing_edge_v, center_circle, radius):
     trailing_edge_u = complex((trailing_edge_v - center_circle) / radius)
-    u1 = velocity * radius * \
-         (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
+    u1 = velocity * radius * (np.exp(-1j * aoa) - np.exp(1j * aoa) / trailing_edge_u ** 2)
     u2 = - 1j / trailing_edge_u / (2 * np.pi)
 
     steady_circulation = complex(- u1 / u2)
     return steady_circulation.real
 
 
-def main():
+def main(aoa_temp):
     start = time.time()
     iterate_time = start
     ctime = dt.now().strftime("%Y-%m-%d %H.%M.%S")
     # ------ airfoil data
-    airfoil = 'NACA0012'
+    airfoil = 'NACA2412'
     N, radius, center_circle, trailing_edge_z, trailing_edge_v, Gkn, z_plane, v_plane, u_plane = read_data(airfoil)
 
     # ------ free stream velocity
-    re_num = 7e5
+    re_num = 1e6
     density = 1.225
     viscosity = 1.789e-5
     free_velocity = re_num * viscosity / density
-    free_aoa = 4.0
-    free_aoa = np.deg2rad(free_aoa)
+    free_aoa_deg = aoa_temp
+    print('aoa', free_aoa_deg)
+    free_aoa = np.deg2rad(free_aoa_deg)
 
     # ------ plunging parameters
-    pl_amplitude = 1.0
-    pl_frequency = 5.0
+
+    pl_amplitude = 0.0
+    pl_frequency = 0.0
     strauhl_number = 2 * np.pi * pl_amplitude * pl_frequency / free_velocity
-    print('strauhl number', strauhl_number)
+    # print('strauhl number', strauhl_number)
+
     plunging_on = True
-    if pl_frequency == 0.0 or pl_amplitude == 0.0:
+    if pl_amplitude == 0.0 or pl_frequency == 0.0:
         plunging_on = False
+        pl_amplitude = 0.0
+        pl_frequency = 0.0
+
     # ------ pitching parameters
     pi_amplitude = 0
     pi_frequency = 0
 
     # ------ new vortex
     distance = 0.001
-    angle = 0
-    angle = np.deg2rad(angle)
+    angle_deg = 0.0
+    angle = np.deg2rad(angle_deg)
 
     # ------ time step
     time_step = 0.005
-    current_time = 0.00
-    iteration = 100
+    current_time = 0.0
+    iteration = 1000
 
     # ----- force file parameters
     Iwx_pre = 0
@@ -330,11 +375,11 @@ def main():
     # plot_graph_condition = True
     time_delay = time_step / 100  # time delay between two graph update intervals
     plot_all_4 = False
-    nrow = 0
-    ncol = 0
+
     heading_list = []
     x_axis_title = []
     y_axis_title = []
+    axs = 0
     if plot_all_4:
         nrow = 2
         ncol = 2
@@ -350,12 +395,12 @@ def main():
         heading_list.append('Cd vs. Time')
         y_axis_title.append('Cd')
         x_axis_title.append('Time (s)')
-    fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
+        fig, axs = plt.subplots(ncols=ncol, nrows=nrow)
 
-    vortex_movement = False
-    cl_time_grapgh = False
-    cd_time_grapgh = False
-    plunging_dis_graph = True
+    vortex_movement = False  # show graph at the end of each iteration
+    cl_time_grapgh = False  # show graph at the end of each iteration
+    cd_time_grapgh = False  # show graph at the end of each iteration
+    plunging_dis_graph = False  # show graph at the end of each iteration
 
     # ----- make directory
     if not os.path.exists('Results'):
@@ -366,15 +411,16 @@ def main():
     # ----- write in a file
     heading_file = path_dir + '/result_file.txt'
     if main_file:
-        write_files.make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
-                              pi_frequency, time_step, current_time, iteration, distance, angle, heading_file)
+        write_files.make_file(airfoil, re_num, strauhl_number, density, viscosity, free_velocity, free_aoa_deg,
+                              pl_amplitude, pl_frequency, pi_amplitude, pi_frequency, time_step, current_time,
+                              iteration, distance, angle_deg, heading_file)
 
     # heading_force_file = path_dir + '/force_file_' + airfoil + '.txt'
     heading_force_file = path_dir + '/force_file.txt'
     if force_file:
-        write_files.make_force_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
-                                    pi_frequency, time_step, current_time, iteration, distance, angle,
-                                    heading_force_file)
+        write_files.make_force_file(airfoil, re_num, strauhl_number, density, viscosity, free_velocity, free_aoa_deg,
+                                    pl_amplitude, pl_frequency, pi_amplitude, pi_frequency, time_step, current_time,
+                                    iteration, distance, angle_deg, heading_force_file)
 
     type_name = 'velocity_on_the_airfoil_'
     # type_name = 'tangential_velocity_'
@@ -383,7 +429,7 @@ def main():
     # heading_mis_file = path_dir + '/mis_file_' + type_name + airfoil + '.txt'
     heading_mis_file = path_dir + '/mis_file_' + type_name + '.txt'
     if mis_file:
-        write_files.make_mis_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
+        write_files.make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude,
                                   pi_frequency, time_step, current_time, iteration, distance, angle, heading_mis_file,
                                   type_name)
     print(airfoil)
@@ -392,17 +438,22 @@ def main():
     steady_circulation = steady_state_circulation(free_velocity, free_aoa, trailing_edge_v, center_circle, radius)
     steady_cl = -2 * steady_circulation / free_velocity
     steady_lift = -density * free_velocity * steady_circulation
+
     # ------ transcient solution
     for iterate in range(iteration):
         if iterate % 100 == 0:
             print('Iteration - ' + str(iterate))
+        if iterate == iteration - 1:
+            print('Simulation completed')
 
         trailing_edge_u, velocity, aoa, new_vortex_position_z, new_vortex_position_v, new_vortex_position_u, \
-        plunging_dis, plunging_vel = initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency,
-                                                      pl_amplitude, trailing_edge_z, distance, angle, Gkn,
-                                                      trailing_edge_v, current_time, plunging_on)
-        circulation, s = calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength,
-                                               new_vortex_position_u, te_vortex_u)
+        circulation, s = initialize_field(center_circle, radius, free_velocity, free_aoa, pl_frequency, pl_amplitude,
+                                          trailing_edge_z, distance, angle, Gkn, trailing_edge_v, current_time,
+                                          plunging_on, te_vortex_strength, te_vortex_u, time_step)
+        # circulation, s = calculate_circulation(radius, velocity, aoa, trailing_edge_u, te_vortex_strength,
+        #                                        new_vortex_position_u, te_vortex_u)
+
+        # print(circulation, circulation_new)
 
         circulation_list = np.append(circulation_list, [circulation])
         te_vortex_strength = np.append(te_vortex_strength, [- s - circulation])
@@ -457,19 +508,29 @@ def main():
 
         if cl_time_grapgh:
             graph.cl_grapgh_plot(time_cal, cl_array, time_delay, islast, x_limit_low, x_limit_high, steady_value_list,
-                                 path_dir, plunging_on)
+                                 path_dir, plunging_on, True)
         if cd_time_grapgh:
-            graph.cd_grapgh_plot(time_cal, cd_array, time_delay, islast, x_limit_low, x_limit_high, path_dir)
-        if plunging_on and plunging_dis_graph:
+            graph.cd_grapgh_plot(time_cal, cd_array, time_delay, islast, x_limit_low, x_limit_high, path_dir, True)
+        if plunging_on:
             plunging_dis = 1j * pl_amplitude * np.sin(2 * np.pi * pl_frequency * current_time)
             plunging_dis_array = np.append(plunging_dis_array, [plunging_dis.imag])
-            graph.plunging_distance_plot(time_cal, plunging_dis_array, time_delay, islast, x_limit_low, x_limit_high,
-                                         path_dir)
+            if plunging_dis_graph:
+                graph.plunging_distance_plot(time_cal, plunging_dis_array, time_delay, islast, x_limit_low,
+                                             x_limit_high, path_dir, True)
         if vortex_movement:
-            graph.plot_airfoil(z_plane, te_vortex_z, te_vortex_strength, free_aoa, time_delay, islast)
+            graph.plot_airfoil(z_plane, te_vortex_z, te_vortex_strength, free_aoa, time_delay, islast, path_dir, True)
         te_vortex_u, te_vortex_v, te_vortex_z = move_vortices(te_vortex_u, te_vortex_v, te_vortex_z, Gkn, center_circle,
                                                               radius, velocity, aoa, circulation, te_vortex_strength,
                                                               time_step)
+
+        if iterate == iteration - 1:
+            graph.cl_grapgh_plot(time_cal, cl_array, time_delay, islast, x_limit_low, x_limit_high, steady_value_list,
+                                 path_dir, plunging_on, False)
+            graph.cd_grapgh_plot(time_cal, cd_array, time_delay, islast, x_limit_low, x_limit_high, path_dir, False)
+            if plunging_on:
+                graph.plunging_distance_plot(time_cal, plunging_dis_array, time_delay, islast, x_limit_low,
+                                             x_limit_high, path_dir, False)
+
         current_time += time_step
 
     if main_file:
@@ -482,4 +543,6 @@ def main():
         write_files.create_excel_file(path_dir)
 
 
-main()
+aoa_array = np.arange(8, 21, 1)
+for i in aoa_array:
+    main(i)

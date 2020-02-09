@@ -1,16 +1,19 @@
 import numpy as np
-import xlsxwriter as xl
+# import xlsxwriter as xl
 
 
-def make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-              time_step, current_time, iteration, distance, angle, heading):
+def make_file(airfoil, re_num, strauhl_number, density, viscosity, free_velocity, free_aoa, pl_amplitude, pl_frequency,
+              pi_amplitude, pi_frequency, time_step, current_time, iteration, distance, angle, heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('Reynolds number\n' + str(re_num) + '\n')
+    file1.write('re_num\n' + str(re_num) + '\n')
+    file1.write('strauhl number\n' + str(strauhl_number) + '\n')
+    file1.write('density\n' + str(density) + '\n')
+    file1.write('viscosity\n' + str(viscosity) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
-    file1.write('free_aoa\n' + str(np.rad2deg(free_aoa)) + '\n')
+    file1.write('free_aoa\n' + str(free_aoa) + '\n')
     file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
     file1.write('pl_frequency\n' + str(pl_frequency) + '\n')
     file1.write('pi_amplitude\n' + str(pi_amplitude) + '\n')
@@ -25,13 +28,17 @@ def make_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequen
     file1.close()
 
 
-def make_force_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
-                    time_step, current_time, iteration, distance, angle, heading):
+def make_force_file(airfoil, re_num, strauhl_number, density, viscosity, free_velocity, free_aoa, pl_amplitude,
+                    pl_frequency, pi_amplitude, pi_frequency, time_step, current_time, iteration, distance, angle,
+                    heading):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('Reynolds number\n' + str(re_num) + '\n')
+    file1.write('re_num\n' + str(re_num) + '\n')
+    file1.write('strauhl number\n' + str(strauhl_number) + '\n')
+    file1.write('density\n' + str(density) + '\n')
+    file1.write('viscosity\n' + str(viscosity) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
     file1.write('free_aoa\n' + str(free_aoa) + '\n')
     file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
@@ -48,13 +55,12 @@ def make_force_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_f
     file1.close()
 
 
-def make_mis_file(airfoil, re_num, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
+def make_mis_file(airfoil, free_velocity, free_aoa, pl_amplitude, pl_frequency, pi_amplitude, pi_frequency,
                   time_step, current_time, iteration, distance, angle, heading, type_name):
     # heading = 'Transient_solution_results/' + 'result_file_' + airfoil + '.txt'
     file1 = open(heading, 'w')
 
     file1.write('airfoil\n' + str(airfoil) + '\n')
-    file1.write('Reynolds number\n' + str(re_num) + '\n')
     file1.write('free_velocity\n' + str(free_velocity) + '\n')
     file1.write('free_aoa\n' + str(free_aoa) + '\n')
     file1.write('pl_amplitude\n' + str(pl_amplitude) + '\n')
@@ -138,6 +144,6 @@ def create_excel_file(path_dir):
     force_line = force_file.readlines()
     result_line = result_file.readlines()
     airfoil_name = force_line[1][:-1]
-    workbook = xl.Workbook(path_dir + '/Data.xlsx')
-    worksheet = workbook.add_worksheet(airfoil_name)
-    workbook.close()
+    # workbook = xl.Workbook(path_dir + '/Data.xlsx')
+    # worksheet = workbook.add_worksheet(airfoil_name)
+    # workbook.close()
